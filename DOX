@@ -1,0 +1,70 @@
+This simple MMOARPG (because I hate click-and-wait rpgs) is a really simplified 3d game.
+It implements the Simple RPG (the single-page one) I wrote as the combat system.
+It's almost turn-based, but not really, there's just really quick cooldowns.
+
+The players start off in Arcadia, get some quests to go kill some Mooks or
+Wandering Monsters in Ghibli Hills.
+The Mooks are generally found in small groups, camping in the wilderness.
+The Wandering Monsters are generally few and far between, often quite a bit
+more powerful than the players, Usually being Smash Mooks.
+
+From Ghibli Hills, the player can make their way into any number of vastly
+different zones, like: Fire, Ice, Sewer, Creepy Forest, Ghost Ship, Mine,
+Glowing Crystal Maze, Ancient Temple Full of Traps, Magic Floating Castle,
+Sci-fi Technological, Womb, Water.
+
+Each of these have unique/special items that drop that are related to the Zone.
+The Fire zone drops flaming weapons, etc.
+
+Each Zone has a town in the middle of the zone that can be fast-traveled to.
+The player just has to walk there first, or pay a cabbie.
+
+Zones are instanced per group of players.
+This allows them to play through a storyline and affect the world as they see it.
+
+Towns are instanced, but when a certain amount of players is reached,
+a new instance is spun up.
+
+There are skills and abilities for the players to learn that help them in
+combat, usually the same skill, just with a better effect and name.
+Most abilities are area-of-effect or a line or a cone or somesuch, never
+really targeting a specific opponent.
+
+It should be playable with a joypad.
+It should have a directional movement control consisting of forward, back,
+strafe left and right, and turn left and right.
+There should be 4 buttons for casting spells, using abilities or skills, etc.
+There should be 2 modifier buttons that allow for the use of 16 skills
+total by each modifier button shifting to a different set of 4 abilities and skills.
+(IE, Shift+Control+X or Control+Y or Shift+A.)
+
+Quests should give abilities often, and make the player choose between a few
+different types like Damage or Healing.
+
+Player's models are scaled up depending on level.
+
+Each Zone has a random dungeon with levels equal to the highest player's level in the party.
+To get deeper, you have to defeat a Boss of appropriate level and complexity.
+The dungeons will have lootables (barrels, chests, rat nests) that drop mostly
+junk but once in a while will drop something nice for the players.
+
+Perhaps skills level up the more they use them?
+
+=Random Stuff=
+Dungeons should be random
+Towns can be random
+Zones can be random.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
