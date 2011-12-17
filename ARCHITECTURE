@@ -1,0 +1,37 @@
+SimpleMMO Architecture
+Charles Nelson
+%%date
+
+SimpleMMO has a rather complex server architecture, but this allows us to 
+separate concerns and have well-defined servers of specific information.
+This also allows servers to be spread out across the internet, or optimized
+or rewritten without rewriting the rest of it.
+
+=== AuthServer ===
+The first server a user comes into contact with is the AuthServer.
+It handles all the authentication of users.
+It also is capable of retrieving all the characters a user has associated
+with their account.
+Since these two handlers require authentication, the user who owns a given
+character is hidden from end users.
+This allows us to have separated characters by default, which means that
+when one character adds another to their 'buddy list', or similar, all their
+characters may not necessarily have the same 'buddy' magically appear in their
+list.
+This however, is all up to the implementation of the buddy list that the game
+developer decides to use.
+
+=== CharacterServer ===
+This is a server that retrieves information about characters.
+It is mostly unauthenticated and information served by this is considered "open"
+to all.
+This will allow not only the user to fetch what zone they may be in, but also
+to retrieve all statistics and information about a character.
+This could be used in the UI to show levels, or allow you to "inspect" a character.
+
+=== MasterZoneServer ===
+This server allows a user to look up where the server for a given instance ID like
+"playerinstance-GhibliHills-Groxnor" is located.
+In doing so, it either returns a URL for the user to connect to, or it starts up
+a server, and also returns its new URL.
+
