@@ -35,3 +35,20 @@ This server allows a user to look up where the server for a given instance ID li
 In doing so, it either returns a URL for the user to connect to, or it starts up
 a server, and also returns its new URL.
 
+==== ZoneServer ====
+This one allows the player to retrieve objects' information that live inside this zone.
+There is support for getting all objects, getting all objects changed since a
+given timestamp, or a list of specific objects' information.
+
+In the future, there may be a built-in WebSocket handler that does the job of
+the PhysicsServer (see below), which will make it read/write, and will feed the
+client a stream of player movement updates.
+
+===== PhysicsServer =====
+The PhysicsServer manages player input for movement.
+Player keys are sent directly via WebSockets, and interpreted accordingly.
+This is a write-only server, not being queryable.
+It manages each player's movement, and persists this to the database every ~200ms.
+Player positions are queried from the ZoneServer just like object positions.
+Clients are responsible for motion interpolation.
+
