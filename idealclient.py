@@ -92,6 +92,10 @@ def get_all_objects(zone, username, password):
         return r
 
 # We send a request to the zoneserver to mark our character as online/active
+def set_status(zone, username, password, character, status='online'):
+    data = {'character': character, 'status': status}
+    r = requests.post(''.join((zone, '/setstatus')), auth=(username, password))
+
 # Send an initial movement message to the zoneserver's movement handler to open the connection
 
 ### Repetitive ###

@@ -11,17 +11,23 @@ import tornado
 from tornado.web import RequestHandler
 
 from baseserver import BaseServer, SimpleHandler
+from require_basic_auth import require_basic_auth
 
 from tornado.options import define, options
 
 define("port", default=1300, help="Run on the given port.", type=int)
 define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=int)
 
+@require_basic_auth
 class ObjectsHandler(RequestHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
 
-    def get(self):
+    def get(self, basicauth_user, basicauth_pass):
         self.write(json.dumps(self.get_objects()))
+
+    def post(self, **kwargs):
+        basicauth_user = kwargs['basicauth_user']
+        basicauth_pass = kwargs['basicauth_pass']
 
     def get_objects(self):
         '''Gets a list of objects in the zone.
@@ -50,10 +56,23 @@ class ObjectsHandler(RequestHandler):
 
         return objects
 
+class CharStatusHandler(RequestHandler):
+    '''ObjectsHandler returns a list of objects and their data.'''
+
+    @tornado.web.authenticated
+    def post(self):
+        character = self.get_argument('character', '')
+        # If user owns this character
+        self.write(json.dumps(self.get_objects()))
+
+    def set_status(self):
+        '''Sets a character's online status.'''
+
 if __name__ == "__main__":
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/objects", ObjectsHandler))
+    handlers.append((r"/setstatus", CharStatusHandler))
 
     server = BaseServer(handlers)
     server.listen(options.port)
