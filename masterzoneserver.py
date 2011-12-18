@@ -4,15 +4,17 @@ A server providing URLs to ZoneServers.
 '''
 
 import json
+from subprocess import Popen
 
 import tornado
 from tornado.web import RequestHandler
 
-from settings import MASTERZONESERVERPORT
+from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME
 
 from baseserver import BaseServer, SimpleHandler
 from require_basic_auth import require_basic_auth
 
+ZONEPID = None
 
 class ZoneHandler(RequestHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
@@ -24,7 +26,22 @@ class ZoneHandler(RequestHandler):
     def get_url(self, zoneid):
         '''Gets the zone URL from the database based on its id.
         ZoneServer ports start at 1300.'''
-        return 'http://localhost:1300/'
+        return self.launch_zone('playerinstance', 'GhibliHills', 'Groxnor')
+
+    def launch_zone(self, instance_type, name, owner):
+        '''Starts a zone given the type of instance, name and character that owns it.
+        Returns the zone URL for the new zone server.'''
+        # Query the database for an unused zone port.
+        port = 1300
+        # Make sure the instance type is allowed
+        # Make sure the name exists
+        # Make sure owner is real
+        # Try to start a zone server
+        p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port %d' % port, '&']), shell=True)
+        ZONEPID = p.pid
+
+        # If successful, write our URL to the database and return it
+        return ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port), '/'))
 
 if __name__ == "__main__":
     handlers = []
