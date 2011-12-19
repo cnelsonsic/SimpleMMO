@@ -33,15 +33,22 @@ class ZoneHandler(BaseHandler):
         Returns the zone URL for the new zone server.'''
         # Query the database for an unused zone port.
         port = 1300
+
         # Make sure the instance type is allowed
         # Make sure the name exists
         # Make sure owner is real
+        
         # Try to start a zone server
-        p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port %d' % port, '&']), shell=True)
+        p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port=%d' % port, '&']), shell=True)
         ZONEPID = p.pid
 
+        # Wait for server to come up
+        # Or just query it on "/" every hundred ms or so.
+        import time
+        time.sleep(1)
+
         # If successful, write our URL to the database and return it
-        return ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port), '/'))
+        return ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
 
 if __name__ == "__main__":
     handlers = []

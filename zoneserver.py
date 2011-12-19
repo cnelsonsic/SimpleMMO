@@ -52,16 +52,19 @@ class ObjectsHandler(BaseHandler):
         return objects
 
 class CharStatusHandler(BaseHandler):
-    '''ObjectsHandler returns a list of objects and their data.'''
+    '''Manages if a character is active in the zone or not.'''
 
     @tornado.web.authenticated
     def post(self):
         character = self.get_argument('character', '')
+        status = self.get_argument('status', '')
         # If user owns this character
-        self.write(json.dumps(self.get_objects()))
+        return self.set_status(character, status)
 
-    def set_status(self):
+    def set_status(self, character, status):
         '''Sets a character's online status.'''
+        # Set the character's status in the zone's database.
+        return True
 
 if __name__ == "__main__":
     handlers = []

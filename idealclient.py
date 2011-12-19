@@ -103,6 +103,10 @@ def get_all_objects(zone):
 def set_status(zone, character, status='online'):
     data = {'character': character, 'status': status}
     r = requests.post(''.join((zone, '/setstatus')), cookies=COOKIES)
+    if r.status_code == 200:
+        return True
+    else:
+        return r
 
 # Send an initial movement message to the zoneserver's movement handler to open the connection
 
@@ -142,3 +146,11 @@ if __name__ == "__main__":
 
     zoneserver = get_zoneserver(zone)
     print "Got %s as zone url." % zoneserver
+
+    objects = get_all_objects(zoneserver)
+    print "Got %d objects from the server." % len(objects)
+
+    if set_status(zoneserver, chars[0]):
+        print "Set status in the zone to online."
+
+
