@@ -84,7 +84,6 @@ def get_zone(charname):
 # If it's online already, send us the URL
 # If it's not online, spin one up and send it when ready.
 def get_zoneserver(zone):
-    print COOKIES
     r = requests.get(''.join((ZONESERVER, '/', zone)), cookies=COOKIES)
     if r.status_code == 200:
         return r.content

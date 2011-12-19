@@ -7,14 +7,6 @@ from settings import *
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
 
-class SimpleHandler(RequestHandler):
-    def __init__(self, output, *args):
-        self.output = output
-        RequestHandler.__init__(self, *args)
-
-    def get(self):
-        self.write(self.output)
-
 class BaseHandler(RequestHandler):
     def get_login_url(self):
         return u"/login"
@@ -26,6 +18,13 @@ class BaseHandler(RequestHandler):
         else:
             return None
 
+class SimpleHandler(BaseHandler):
+    def __init__(self, output, *args):
+        self.output = output
+        RequestHandler.__init__(self, *args)
+
+    def get(self):
+        self.write(self.output)
 
 class BaseServer(Application):
     def __init__(self, handlers):

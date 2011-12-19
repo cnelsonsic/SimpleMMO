@@ -7,15 +7,14 @@ import json
 from subprocess import Popen
 
 import tornado
-from tornado.web import RequestHandler
 
 from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME
 
-from baseserver import BaseServer, SimpleHandler
+from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 ZONEPID = None
 
-class ZoneHandler(RequestHandler):
+class ZoneHandler(BaseHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
     instance of the zone for that player.'''
 

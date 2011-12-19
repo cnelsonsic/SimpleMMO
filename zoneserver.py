@@ -8,9 +8,8 @@ import datetime
 import uuid
 
 import tornado
-from tornado.web import RequestHandler
 
-from baseserver import BaseServer, SimpleHandler
+from baseserver import BaseServer, SimpleHandler, BaseHandler
 from require_basic_auth import require_basic_auth
 
 from tornado.options import define, options
@@ -18,7 +17,7 @@ from tornado.options import define, options
 define("port", default=1300, help="Run on the given port.", type=int)
 define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=int)
 
-class ObjectsHandler(RequestHandler):
+class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
 
     @tornado.web.authenticated
@@ -52,7 +51,7 @@ class ObjectsHandler(RequestHandler):
 
         return objects
 
-class CharStatusHandler(RequestHandler):
+class CharStatusHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
 
     @tornado.web.authenticated

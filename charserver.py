@@ -10,14 +10,12 @@ For example, getting which zone a character is currently in.
 import json
 
 import tornado
-from tornado.web import RequestHandler
 
 from settings import CHARSERVERPORT
 
-from baseserver import BaseServer, SimpleHandler
+from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-
-class CharacterZoneHandler(RequestHandler):
+class CharacterZoneHandler(BaseHandler):
     '''CharacterHandler gets information for a given character.'''
 
     def get(self, character):
