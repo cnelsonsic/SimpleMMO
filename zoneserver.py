@@ -18,16 +18,12 @@ from tornado.options import define, options
 define("port", default=1300, help="Run on the given port.", type=int)
 define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=int)
 
-@require_basic_auth
 class ObjectsHandler(RequestHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
 
-    def get(self, basicauth_user, basicauth_pass):
+    @tornado.web.authenticated
+    def get(self):
         self.write(json.dumps(self.get_objects()))
-
-    def post(self, **kwargs):
-        basicauth_user = kwargs['basicauth_user']
-        basicauth_pass = kwargs['basicauth_pass']
 
     def get_objects(self):
         '''Gets a list of objects in the zone.

@@ -12,7 +12,6 @@ from tornado.web import RequestHandler
 from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME
 
 from baseserver import BaseServer, SimpleHandler
-from require_basic_auth import require_basic_auth
 
 ZONEPID = None
 
@@ -20,7 +19,9 @@ class ZoneHandler(RequestHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
     instance of the zone for that player.'''
 
+    @tornado.web.authenticated
     def get(self, zoneid):
+        # Check that the authed user owns that zoneid in the database.
         self.write(self.get_url(zoneid))
 
     def get_url(self, zoneid):

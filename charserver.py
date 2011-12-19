@@ -15,7 +15,6 @@ from tornado.web import RequestHandler
 from settings import CHARSERVERPORT
 
 from baseserver import BaseServer, SimpleHandler
-from require_basic_auth import require_basic_auth
 
 
 class CharacterZoneHandler(RequestHandler):
@@ -29,6 +28,8 @@ class CharacterZoneHandler(RequestHandler):
         to the character.
         It currently only returns the zone the character is in.'''
         return {'zone':'playerinstance-GhibliHills-%s' % (charname,)}
+
+    # TODO: Add character online/offline status
 
 if __name__ == "__main__":
     handlers = []

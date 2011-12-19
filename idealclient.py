@@ -1,9 +1,11 @@
 '''This is an example implementation of an ideal client.
-It won't work and probably won't even execute.'''
+It is exceptionally stupid and fragile.
+It should only be used as an example of how to make calls to the servers.'''
 
 import exceptions
 from time import sleep
 import json
+import pdb
 
 import requests
 
@@ -22,6 +24,9 @@ HOSTNAME = "localhost"
 AUTHSERVER = "%s%s:%d" % (PREFIX, HOSTNAME, AUTHSERVERPORT)
 CHARSERVER = "%s%s:%d" % (PREFIX, HOSTNAME, CHARSERVERPORT)
 ZONESERVER = "%s%s:%d" % (PREFIX, HOSTNAME, MASTERZONESERVERPORT)
+
+# A global holder for our cookies.
+COOKIES = {}
 
 class ConnectionError(exceptions.Exception):
     def __init__(self, param):
@@ -42,9 +47,12 @@ def ping_authserver():
 
 # Send username/password credentials to server
 # Server sends back a cookie that we send with all our requests.
-def authenticate(username, password):
-    r = requests.get(''.join((AUTHSERVER, "/authenticate")), auth=(username, password))
+def login(username, password):
+    data = {"username": username, "password": password}
+    r = requests.post(''.join((AUTHSERVER, "/login")), data=data, cookies=COOKIES)
     content = r.content
+
+    COOKIES.update(r.cookies)
 
     if r.status_code == 200:
         return True
@@ -53,8 +61,8 @@ def authenticate(username, password):
 
 # Ask authserver for list of characters associated with this account
 # authserver returns a list of characters
-def get_characters(username, password):
-    r = requests.get(''.join((AUTHSERVER, "/characters")), auth=(username, password))
+def get_characters():
+    r = requests.get(''.join((AUTHSERVER, "/characters")), cookies=COOKIES)
     if r.status_code == 200:
         return json.loads(r.content)
     else:
@@ -75,8 +83,9 @@ def get_zone(charname):
 # We then send a request to the master zone server for the url to the given zone
 # If it's online already, send us the URL
 # If it's not online, spin one up and send it when ready.
-def get_zoneserver(username, password, zone):
-    r = requests.get(''.join((ZONESERVER, '/', zone)), auth=(username, password))
+def get_zoneserver(zone):
+    print COOKIES
+    r = requests.get(''.join((ZONESERVER, '/', zone)), cookies=COOKIES)
     if r.status_code == 200:
         return r.content
     else:
@@ -84,17 +93,17 @@ def get_zoneserver(username, password, zone):
 
 # Request all objects in the zone. (Terrain, props, players are all objects)
 # Bulk of loading screen goes here while we download object info.
-def get_all_objects(zone, username, password):
-    r = requests.get(''.join((zone, '/objects')), auth=(username, password))
+def get_all_objects(zone):
+    r = requests.get(''.join((zone, '/objects')), cookies=COOKIES)
     if r.status_code == 200:
         return json.loads(r.content)
     else:
         return r
 
 # We send a request to the zoneserver to mark our character as online/active
-def set_status(zone, username, password, character, status='online'):
+def set_status(zone, character, status='online'):
     data = {'character': character, 'status': status}
-    r = requests.post(''.join((zone, '/setstatus')), auth=(username, password))
+    r = requests.post(''.join((zone, '/setstatus')), cookies=COOKIES)
 
 # Send an initial movement message to the zoneserver's movement handler to open the connection
 
@@ -123,14 +132,14 @@ if __name__ == "__main__":
         sleeptime = sleeptime**1.5
 
     # Since the server is up, authenticate.
-    if authenticate(USERNAME, PASSWORD) is True:
+    if login(USERNAME, PASSWORD) is True:
         print "authenticated"
 
-    chars = get_characters(USERNAME, PASSWORD)
+    chars = get_characters()
     print "Got %r as characters." % chars
 
     zone = get_zone(chars[0])
     print "Got %r as zone." % zone
 
-    zoneserver = get_zoneserver(USERNAME, PASSWORD, zone)
+    zoneserver = get_zoneserver(zone)
     print "Got %s as zone url." % zoneserver

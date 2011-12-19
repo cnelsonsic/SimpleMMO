@@ -1,5 +1,6 @@
 
 from random import randint
+import subprocess
 
 from settings import *
 
@@ -15,17 +16,28 @@ class SimpleHandler(RequestHandler):
         self.write(self.output)
 
 class BaseHandler(RequestHandler):
+    def get_login_url(self):
+        return u"/login"
+
     def get_current_user(self):
-        return self.get_secure_cookie("user")
+        user_json = self.get_secure_cookie("user")
+        if user_json:
+            return user_json
+        else:
+            return None
+
 
 class BaseServer(Application):
     def __init__(self, handlers):
         '''Expects a list of tuple handlers like:
                 [(r"/", MainHandler), (r"/chatsocket", ChatSocketHandler),]
         '''
-        settings = {"cookie_secret": [chr(randint(32, 126)) for _ in xrange(75)],
-                "login_url": ''.join((PROTOCOL, "://", HOSTNAME, ":", str(AUTHSERVERPORT), "/authenticate")),
+        settings = {
+#                 "cookie_secret": ''.join([chr(randint(32, 126)) for _ in xrange(75)]),
+                "cookie_secret": subprocess.check_output('git rev-parse HEAD', shell=True).strip(),
+                "login_url": ''.join((PROTOCOL, "://", HOSTNAME, ":", str(AUTHSERVERPORT), "/login")),
                 }
+        print settings
         Application.__init__(self, handlers, debug=True, **settings)
 
     def start(self):
