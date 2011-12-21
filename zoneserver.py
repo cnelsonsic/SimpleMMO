@@ -10,7 +10,6 @@ import uuid
 import tornado
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
-from require_basic_auth import require_basic_auth
 
 from tornado.options import define, options
 

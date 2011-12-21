@@ -13,7 +13,6 @@ import tornado
 from settings import AUTHSERVERPORT
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
-from require_basic_auth import require_basic_auth
 
 class PingHandler(BaseHandler):
     def get(self):
