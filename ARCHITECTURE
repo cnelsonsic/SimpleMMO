@@ -29,11 +29,22 @@ This will allow not only the user to fetch what zone they may be in, but also
 to retrieve all statistics and information about a character.
 This could be used in the UI to show levels, or allow you to "inspect" a character.
 
+Data:
+Important and should use a 'safe' database.
+Should a character's row go missing, that character would effectively be gone forever.
+Players will be upset.
+
 === MasterZoneServer ===
 This server allows a user to look up where the server for a given instance ID like
 "playerinstance-GhibliHills-Groxnor" is located.
 In doing so, it either returns a URL for the user to connect to, or it starts up
 a server, and also returns its new URL.
+
+Data:
+Not very important.
+If a row goes missing here or there, we'll just end up with a very lonely zone server.
+Even this is mitigated by the zone servers which shut themselves down if they
+don't get requests for 5 minutes.
 
 ==== ZoneServer ====
 This one allows the player to retrieve objects' information that live inside this zone.
@@ -44,6 +55,14 @@ In the future, there may be a built-in WebSocket handler that does the job of
 the PhysicsServer (see below), which will make it read/write, and will feed the
 client a stream of player movement updates.
 
+Data:
+Not incredibly important.
+If a row for a character position disappears, they will just show up at the (re-)spawn point.
+If a row for event statuses disappear, that zone's scripts might break, all or
+just some things might reset, and the whole experience of that zone may be broken.
+Loot may appear to re-spawn, which may lead to duplication of special items, or 
+allowing for extra loot from chests without having to kill all the trashmobs.
+
 ===== PhysicsServer =====
 The PhysicsServer manages player input for movement.
 Player keys are sent directly via WebSockets, and interpreted accordingly.
@@ -52,3 +71,8 @@ It manages each player's movement, and persists this to the database every ~200m
 Player positions are queried from the ZoneServer just like object positions.
 Clients are responsible for motion interpolation.
 
+Data:
+Not important at all.
+Only manages in-memory player positions and mob positions, so if those are lost,
+things just revert back to wherever they were persisted to the database last.
+This needs to be fast and not reliable. It shouldn't be persisted at all.
