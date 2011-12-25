@@ -26,6 +26,13 @@ class SimpleHandler(BaseHandler):
     def get(self):
         self.write(self.output)
 
+class VersionHandler(BaseHandler):
+    def get(self):
+        from subprocess import Popen, PIPE
+        gitsha = Popen("git rev-parse --short HEAD", shell=True, stdout=PIPE).communicate()[0].strip()
+        commits = Popen("git rev-list --all | wc -l", shell=True, stdout=PIPE).communicate()[0].strip()
+        self.write('\n'.join((gitsha, commits)))
+
 class BaseServer(Application):
     def __init__(self, handlers):
         '''Expects a list of tuple handlers like:
@@ -36,7 +43,9 @@ class BaseServer(Application):
                 "cookie_secret": subprocess.check_output('git rev-parse HEAD', shell=True).strip(),
                 "login_url": ''.join((PROTOCOL, "://", HOSTNAME, ":", str(AUTHSERVERPORT), "/login")),
                 }
-        print settings
+
+        handlers.append((r"/version", VersionHandler))
+
         Application.__init__(self, handlers, debug=True, **settings)
 
     def start(self):
