@@ -4,6 +4,8 @@ A server providing URLs to ZoneServers.
 '''
 
 import json
+import time
+import multiprocessing
 from subprocess import Popen
 
 import tornado
@@ -11,8 +13,12 @@ import tornado
 from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
+import zoneserver
 
-ZONEPID = None
+ZONEPIDS = []
+NEXTCLEANUP = time.time()+(5*60)
+
+JOBS = []
 
 class ZoneHandler(BaseHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
@@ -20,6 +26,7 @@ class ZoneHandler(BaseHandler):
 
     @tornado.web.authenticated
     def get(self, zoneid):
+        self.cleanup()
         # Check that the authed user owns that zoneid in the database.
         self.write(self.get_url(zoneid))
 
@@ -37,10 +44,17 @@ class ZoneHandler(BaseHandler):
         # Make sure the instance type is allowed
         # Make sure the name exists
         # Make sure owner is real
-        
+
         # Try to start a zone server
-        p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port=%d' % port, '&']), shell=True)
-        ZONEPID = p.pid
+        pname = ''.join((instance_type, name, owner))
+        p = multiprocessing.Process(name=pname, target=zoneserver.main, args=(port,))
+        p.daemon = True
+        JOBS.append(p)
+        print "Starting %s as PID %d on port %d." % (pname, p.pid, port)
+        p.start()
+
+#         p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port=%d' % port, '&']), shell=True)
+#         ZONEPIDS.append(p.pid)
 
         # Wait for server to come up
         # Or just query it on "/" every hundred ms or so.
@@ -49,6 +63,16 @@ class ZoneHandler(BaseHandler):
 
         # If successful, write our URL to the database and return it
         return ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
+
+    def cleanup(self):
+        # Every 5 minutes...
+        global NEXTCLEANUP
+        if NEXTCLEANUP < time.time():
+            NEXTCLEANUP = time.time()+(5*60)
+            for pid in PIDS:
+                pass
+                # If pid not in database
+                    # Kill the process by pid
 
 if __name__ == "__main__":
     handlers = []

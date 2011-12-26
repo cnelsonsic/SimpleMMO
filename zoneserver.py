@@ -12,9 +12,15 @@ import tornado
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 from tornado.options import define, options
+try:
+    from tornado.websocket import WebSocketHandler
+except(ImportError):
+    print "Couldn't import WebSocketHandler."
+    WebSocketHandler = BaseHandler
 
 define("port", default=1300, help="Run on the given port.", type=int)
 define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=int)
+
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
@@ -65,14 +71,34 @@ class CharStatusHandler(BaseHandler):
         # Set the character's status in the zone's database.
         return True
 
-if __name__ == "__main__":
+class MovementHandler(WebSocketHandler):
+    '''This is a sample movement handler, which really should be replaced with
+    something a bit more efficient and/or featureful.'''
+
+    def open(self):
+        self.receive_message(self.on_message)
+
+    def on_message(self, message):
+        m = json.loads(message)
+        user = self.get_secure_cookie('user')
+        command = m['command']
+
+    def set_movement(self, character, xmod, ymod, zmod):
+        pass
+        # Set the character's new position based on the x, y and z modifiers.
+
+def main(port=1300):
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/objects", ObjectsHandler))
     handlers.append((r"/setstatus", CharStatusHandler))
+    handlers.append((r"/movement", MovementHandler))
 
     server = BaseServer(handlers)
-    server.listen(options.port)
+    server.listen(port)
 
     print "Starting up Zoneserver..."
     server.start()
+
+if __name__ == "__main__":
+    main(port=options.port)
