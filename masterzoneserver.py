@@ -46,23 +46,26 @@ class ZoneHandler(BaseHandler):
         # Make sure owner is real
 
         # Try to start a zone server
-        pname = ''.join((instance_type, name, owner))
-        p = multiprocessing.Process(name=pname, target=zoneserver.main, args=(port,))
-        p.daemon = True
-        JOBS.append(p)
-        print "Starting %s as PID %d on port %d." % (pname, p.pid, port)
-        p.start()
+#         pname = ''.join((instance_type, name, owner))
+#         p = multiprocessing.Process(name=pname, target=zoneserver.main, args=(port,))
+#         p.daemon = True
+#         JOBS.append(p)
+#         print "Starting %s as PID %d on port %d." % (pname, p.pid, port)
+#         p.start()
 
-#         p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port=%d' % port, '&']), shell=True)
-#         ZONEPIDS.append(p.pid)
+        zoneid = ''.join((instance_type, name, owner))
+
+        p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port=%d' % port, '--zoneid=%s' % zoneid, '&']), shell=True)
+        ZONEPIDS.append(p.pid)
 
         # Wait for server to come up
         # Or just query it on "/" every hundred ms or so.
+        zoneurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
         import time
         time.sleep(1)
 
         # If successful, write our URL to the database and return it
-        return ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
+        return zoneurl
 
     def cleanup(self):
         # Every 5 minutes...

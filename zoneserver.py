@@ -11,6 +11,8 @@ import tornado
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
+# from ming_models import *
+
 from tornado.options import define, options
 try:
     from tornado.websocket import WebSocketHandler
@@ -19,8 +21,37 @@ except(ImportError):
     WebSocketHandler = BaseHandler
 
 define("port", default=1300, help="Run on the given port.", type=int)
-define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=int)
+define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=str)
 
+import ming
+from ming import Session
+from ming import Field, schema
+from ming.declarative import Document
+
+zoneid = options.zoneid
+config = {
+        'ming.%s.master' % zoneid: 'mongodb://localhost:27017',
+        'ming.%s.slave' % zoneid: None,
+        'ming.%s.database' % zoneid: zoneid
+        }
+ming.configure(**config)
+Session.by_name(zoneid)
+
+class Object(Document):
+    '''In-world objects.'''
+    class __mongometa__:
+        session = session
+        name = 'object'
+
+    _id = Field(schema.ObjectId)
+    name = Field(str)
+#     'resource': 'barrel',
+#     'name': 'Barrel',
+#     'loc': (4, 6, 34),
+#     'rot': (45, 90, 0),
+#     'scale': (1, 1, 0.9),
+#     'vel': (0, 0, 0),
+#     'states': ('closed', 'whole', 'clickable'),
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
@@ -54,6 +85,10 @@ class ObjectsHandler(BaseHandler):
 
         import time; time.sleep(4) # Simulate high server usage to make caching more obvious
 
+        # Query the mongo objects database
+        objects = Object.m.find().all()
+        print objects
+
         return objects
 
 class CharStatusHandler(BaseHandler):
@@ -82,12 +117,15 @@ class MovementHandler(WebSocketHandler):
         m = json.loads(message)
         user = self.get_secure_cookie('user')
         command = m['command']
+        if command == "mov":
+            self.set_movement(m['char'], m['x'], m['y'], m['z'])
 
     def set_movement(self, character, xmod, ymod, zmod):
         pass
         # Set the character's new position based on the x, y and z modifiers.
 
-def main(port=1300):
+
+def main(port=1300, zoneid="defaultzone"):
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/objects", ObjectsHandler))
@@ -101,4 +139,4 @@ def main(port=1300):
     server.start()
 
 if __name__ == "__main__":
-    main(port=options.port)
+    main(port=options.port, zoneid=options.zoneid)
