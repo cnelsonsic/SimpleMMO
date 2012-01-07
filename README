@@ -1,0 +1,20 @@
+
+
+
+=== Quick Installation ===
+You will need pip to install the requirements, you can do something like:
+sudo apt-get install python-setuptools python-dev build-essential
+or
+sudo yum install python-setuptools python-devel gcc
+followed by
+sudo easy_install -U pip
+
+You'll need to use pip to install the required python packages:
+sudo pip install -r requirements.txt
+
+SimpleMMO uses supervisor to control its server processes, so you will need to
+start them by running `supervisord` while in the SimpleMMO checkout directory.
+You can use `supervisorctl` to check up on the server processes.
+
+
+
