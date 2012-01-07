@@ -47,22 +47,23 @@ class ZoneHandler(BaseHandler):
 
         # Try to start a zone server
         pname = ''.join((instance_type, name, owner))
-        p = multiprocessing.Process(name=pname, target=zoneserver.main, args=(port,))
-        p.daemon = True
-        JOBS.append(p)
-        print "Starting %s as PID %d on port %d." % (pname, p.pid, port)
-        p.start()
+        from startzone import start_zone
+        start_zone(pname, port)
 
-#         p = Popen(' '.join(['/usr/bin/python', 'zoneserver.py', '--port=%d' % port, '&']), shell=True)
-#         ZONEPIDS.append(p.pid)
-
+        serverurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
         # Wait for server to come up
         # Or just query it on "/" every hundred ms or so.
         import time
-        time.sleep(1)
+        starttime = time.time()
+        while requests.get(serverurl).status_code != 200:
+            time.sleep(.01)
+            if time.time() > starttime+5:
+                raise UserWarning("Launching zone %s timed out.")
+
+        print "Starting zone %s took %f seconds." % (time.time()-starttime)
 
         # If successful, write our URL to the database and return it
-        return ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
+        return serverurl
 
     def cleanup(self):
         # Every 5 minutes...
