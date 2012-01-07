@@ -2,5 +2,6 @@ tornado
 elixir
 requests
 pymongo
+ming
 supervisor
 supervisor-twiddler

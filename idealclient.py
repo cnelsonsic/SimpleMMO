@@ -110,6 +110,7 @@ def set_status(zone, character, status='online'):
         return r
 
 # Send an initial movement message to the zoneserver's movement handler to open the connection
+def send
 
 ### Repetitive ###
 # Every second or so, request objects that have changed or been added since the last request.

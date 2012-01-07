@@ -13,7 +13,6 @@ import tornado
 from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
-import zoneserver
 
 ZONEPIDS = []
 NEXTCLEANUP = time.time()+(5*60)
@@ -49,6 +48,7 @@ class ZoneHandler(BaseHandler):
         pname = ''.join((instance_type, name, owner))
         from startzone import start_zone
         start_zone(pname, port)
+
 
         serverurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
         # Wait for server to come up
