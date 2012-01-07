@@ -1,0 +1,6 @@
+tornado
+elixir
+requests
+pymongo
+supervisor
+supervisor-twiddler
