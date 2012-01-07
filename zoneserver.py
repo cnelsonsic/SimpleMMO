@@ -19,8 +19,7 @@ except(ImportError):
     WebSocketHandler = BaseHandler
 
 define("port", default=1300, help="Run on the given port.", type=int)
-define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=int)
-
+define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=str)
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
