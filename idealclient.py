@@ -97,6 +97,7 @@ def get_all_objects(zone):
     if r.status_code == 200:
         return json.loads(r.content)
     else:
+        print r.status_code
         return r
 
 # We send a request to the zoneserver to mark our character as online/active
