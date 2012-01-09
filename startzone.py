@@ -11,8 +11,8 @@ def start_zone(port=1300, zoneid="defaultzone", processgroup='zones', autorestar
         raise UserWarning("Could not connect to supervisor: %s" % exc)
 
     if float(version) >= 0.3:
-        command = '/usr/bin/python zoneserver.py --port=%d --zoneid=%s' % (port, zoneid)
-        settings = {'command': command, 'autostart': str(True), 'autorestart': str(autorestart)}
+        command = '/usr/bin/python zoneserver.py --port=%d --zoneid=%s' % (int(port), zoneid)
+        settings = {'command': command, 'autostart': str(True), 'autorestart': str(autorestart), 'redirect_stderr': str(True)}
         try:
             addtogroup = s.twiddler.addProgramToGroup(processgroup, zoneid, settings)
         except(xmlrpclib.Fault), exc:
