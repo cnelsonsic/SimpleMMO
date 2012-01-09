@@ -5,12 +5,11 @@ A server providing URLs to ZoneServers.
 
 import json
 import time
-import multiprocessing
-from subprocess import Popen
 
 import tornado
+import requests
 
-from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME
+from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
@@ -47,7 +46,14 @@ class ZoneHandler(BaseHandler):
         # Try to start a zone server
         pname = ''.join((instance_type, name, owner))
         from startzone import start_zone
-        start_zone(pname, port)
+        try:
+            start_zone(port, pname)
+        except(UserWarning), exc:
+            if "Zone already exists in process list." in exc:
+                # Zone is already up
+                pass
+            else:
+                raise
 
 
         serverurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
@@ -55,12 +61,21 @@ class ZoneHandler(BaseHandler):
         # Or just query it on "/" every hundred ms or so.
         import time
         starttime = time.time()
-        while requests.get(serverurl).status_code != 200:
-            time.sleep(.01)
-            if time.time() > starttime+5:
+        status = 0
+        numrequests = 0
+        while status != 200:
+            try:
+                status = requests.get(serverurl).status_code
+                numrequests += 1
+            except(requests.ConnectionError):
+                # Not up yet...
+                pass
+
+            time.sleep(.1)
+            if time.time() > starttime+ZONESTARTUPTIME:
                 raise UserWarning("Launching zone %s timed out.")
 
-        print "Starting zone %s took %f seconds." % (time.time()-starttime)
+        print "Starting zone %s (%s) took %f seconds and %d requests." % (pname, serverurl, time.time()-starttime, numrequests)
 
         # If successful, write our URL to the database and return it
         return serverurl
@@ -70,10 +85,8 @@ class ZoneHandler(BaseHandler):
         global NEXTCLEANUP
         if NEXTCLEANUP < time.time():
             NEXTCLEANUP = time.time()+(5*60)
-            for pid in PIDS:
-                pass
-                # If pid not in database
-                    # Kill the process by pid
+            # If pid not in database
+                # Kill the process by pid
 
 if __name__ == "__main__":
     handlers = []

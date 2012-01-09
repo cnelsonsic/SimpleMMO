@@ -6,6 +6,7 @@ A server providing a list of objects present in the zone to clients.
 import json
 import datetime
 import uuid
+import time
 
 import tornado
 
@@ -23,42 +24,52 @@ except(ImportError):
 define("port", default=1300, help="Run on the given port.", type=int)
 define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=str)
 
+from pymongo import json_util
 import ming
 from ming import Session
 from ming import Field, schema
 from ming.declarative import Document
+from ming.datastore import DataStore
 
 zoneid = options.zoneid
-config = {
-        'ming.%s.master' % zoneid: 'mongodb://localhost:27017',
-        'ming.%s.slave' % zoneid: None,
-        'ming.%s.database' % zoneid: zoneid
-        }
-ming.configure(**config)
-Session.by_name(zoneid)
+print zoneid
+
+bind = DataStore('mongodb://localhost:27017/', database=zoneid)
+SESSION = Session(bind)
 
 class Object(Document):
     '''In-world objects.'''
     class __mongometa__:
-        session = session
+        session = SESSION
         name = 'object'
 
     _id = Field(schema.ObjectId)
     name = Field(str)
-#     'resource': 'barrel',
-#     'name': 'Barrel',
-#     'loc': (4, 6, 34),
-#     'rot': (45, 90, 0),
-#     'scale': (1, 1, 0.9),
-#     'vel': (0, 0, 0),
-#     'states': ('closed', 'whole', 'clickable'),
+    resource = Field(str)
+    loc = Field(dict(x=int, y=int, z=int))
+    rot = Field(dict(x=int, y=int, z=int)) # Could be a quaternion.
+    scale = Field(dict(x=float, y=float, z=float))
+    vel = Field(dict(x=float, y=float, z=float))
+    states = Field([str])
+    active = Field(bool)
+
+# Make sure mongodb is up
+while True:
+    try:
+        objects = Object.m.find().first()
+        print objects
+        break
+    except(ming.exc.MongoGone):
+        # Mongo's not up yet. Give it time.
+        time.sleep(.1)
+        print "sleeping"
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
 
     @tornado.web.authenticated
     def get(self):
-        self.write(json.dumps(self.get_objects()))
+        self.write(json.dumps(self.get_objects(), default=json_util.default))
 
     def get_objects(self):
         '''Gets a list of objects in the zone.
@@ -91,6 +102,7 @@ class ObjectsHandler(BaseHandler):
 
         return objects
 
+
 class CharStatusHandler(BaseHandler):
     '''Manages if a character is active in the zone or not.'''
 
@@ -106,19 +118,42 @@ class CharStatusHandler(BaseHandler):
         # Set the character's status in the zone's database.
         return True
 
-class MovementHandler(WebSocketHandler):
+
+class MovementHandler(BaseHandler):
+    '''A stupid HTTP-based handler for handling character movement.'''
+    @tornado.web.authenticated
+    def post(self):
+        character = self.get_argument('character', '')
+        xmod = self.get_argument('x', 0)
+        ymod = self.get_argument('y', 0)
+        zmod = self.get_argument('z', 0)
+
+        self.set_movement(character, xmod, ymod, zmod)
+        return True
+
+    def set_movement(self, character, xmod, ymod, zmod):
+        pass
+        # Set the character's new position based on the x, y and z modifiers.
+
+# TODO: A char movmeent handler token handler, which gives the user a token to use.
+class WSMovementHandler(WebSocketHandler):
     '''This is a sample movement handler, which really should be replaced with
     something a bit more efficient and/or featureful.'''
 
     def open(self):
+        print "WebSocket opened"
+
         self.receive_message(self.on_message)
 
     def on_message(self, message):
+        print message
         m = json.loads(message)
         user = self.get_secure_cookie('user')
         command = m['command']
         if command == "mov":
             self.set_movement(m['char'], m['x'], m['y'], m['z'])
+        
+        self.write_message("ok")
 
     def set_movement(self, character, xmod, ymod, zmod):
         pass
@@ -134,6 +169,24 @@ def main(port=1300, zoneid="defaultzone"):
 
     server = BaseServer(handlers)
     server.listen(port)
+
+    # If no objects in database:
+    print len(Object.m.find().all())
+    if len(Object.m.find().all()) == 0:
+        # Insert some test data.
+        print "Inserting test data."
+        from helpers import coord_dictify as _
+        obj = Object({
+                'name': 'Barrel',
+                'resource': 'barrel',
+                'loc': _(4, 6, 34),
+                'rot': _(45, 90, 0),
+                'scale': _(1, 1, 0.9),
+                'vel': _(0, 0, 0),
+                'states': ['closed', 'whole', 'clickable'],
+                })
+        obj.m.save()
+        assert len(Object.m.find().all()) == 1
 
     print "Starting up Zoneserver..."
     server.start()
