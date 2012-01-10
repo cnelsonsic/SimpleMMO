@@ -31,6 +31,7 @@ from ming import Field, schema
 from ming.declarative import Document
 from ming.datastore import DataStore
 
+tornado.options.parse_command_line()
 zoneid = options.zoneid
 print zoneid
 
