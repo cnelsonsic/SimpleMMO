@@ -44,14 +44,14 @@ class Object(Document):
         name = 'object'
 
     _id = Field(schema.ObjectId)
-    name = Field(str)
-    resource = Field(str)
-    loc = Field(dict(x=int, y=int, z=int))
-    rot = Field(dict(x=int, y=int, z=int)) # Could be a quaternion.
-    scale = Field(dict(x=float, y=float, z=float))
-    vel = Field(dict(x=float, y=float, z=float))
-    states = Field([str])
-    active = Field(bool)
+    name = Field(str, if_missing="")
+    resource = Field(str, if_missing="")
+    loc = Field(dict(x=int, y=int, z=int), if_missing={'x':0, 'y':0, 'z':0})
+    rot = Field(dict(x=int, y=int, z=int), if_missing={'x':0, 'y':0, 'z':0}) # Could be a quaternion.
+    scale = Field(dict(x=float, y=float, z=float), if_missing={'x':0, 'y':0, 'z':0})
+    vel = Field(dict(x=float, y=float, z=float), if_missing={'x':0, 'y':0, 'z':0})
+    states = Field([str], if_missing=[])
+    active = Field(bool, if_missing=True)
 
 # Make sure mongodb is up
 while True:
@@ -111,12 +111,35 @@ class CharStatusHandler(BaseHandler):
         character = self.get_argument('character', '')
         status = self.get_argument('status', '')
         # If user owns this character
-        return self.set_status(character, status)
+        if status in ("online", "offline"):
+            return self.set_char_status(character, status)
+        return False
 
-    def set_status(self, character, status):
+    def set_char_status(self, character, status):
         '''Sets a character's online status.'''
         # Set the character's status in the zone's database.
-        return True
+        try:
+            charobj = Object.m.find({'name':character}).one()
+        except(ValueError):
+            # No character named that.
+            # So create an object for the player and save it.
+            charobj = Object.make()
+            charobj.name = character
+            charobj.states.append('player')
+
+        if status not in charobj.states:
+            charobj.states.append(status)
+
+        # Remove any mutually exclusive character states except what was passed.
+        for s in ('online', 'offline'):
+            if s != status:
+                if s in charobj.states:
+                    charobj.states.remove(s)
+
+        charobj.states = list(set(charobj.states)) # Remove any duplicates.
+        charobj.m.save()
+
+        return charobj
 
 
 class MovementHandler(BaseHandler):
