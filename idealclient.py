@@ -122,7 +122,7 @@ def set_status(zone=None, character=None, status='online'):
         character = CURRENTCHAR
 
     data = {'character': character, 'status': status}
-    r = requests.post(''.join((zone, '/setstatus')), cookies=COOKIES)
+    r = requests.post(''.join((zone, '/setstatus')), cookies=COOKIES, data=data)
     if r.status_code == 200:
         return True
     else:
@@ -211,5 +211,3 @@ if __name__ == "__main__":
     if movresult:
         print "Sent our first movement packet to make sure we show up."
 
-    import pdb
-    pdb.set_trace()
