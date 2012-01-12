@@ -31,6 +31,8 @@ from ming import Field, schema
 from ming.declarative import Document
 from ming.datastore import DataStore
 
+import mongoengine as me
+
 tornado.options.parse_command_line()
 zoneid = options.zoneid
 print zoneid
@@ -38,67 +40,71 @@ print zoneid
 bind = DataStore('mongodb://localhost:27017/', database=zoneid)
 SESSION = Session(bind)
 
-class Object(Document):
-    '''In-world objects.'''
-    class __mongometa__:
-        session = SESSION
-        name = 'object'
-
-    _id = Field(schema.ObjectId)
-    name = Field(str, if_missing="")
-    resource = Field(str, if_missing="")
-    loc = Field(dict(x=int, y=int, z=int), if_missing={'x':0, 'y':0, 'z':0})
-    rot = Field(dict(x=int, y=int, z=int), if_missing={'x':0, 'y':0, 'z':0}) # Could be a quaternion.
-    scale = Field(dict(x=float, y=float, z=float), if_missing={'x':0, 'y':0, 'z':0})
-    vel = Field(dict(x=float, y=float, z=float), if_missing={'x':0, 'y':0, 'z':0})
-    states = Field([str], if_missing=[])
-    active = Field(bool, if_missing=True)
-
 # Make sure mongodb is up
 while True:
     try:
-        objects = Object.m.find().first()
-        print objects
+        me.connect(zoneid)
         break
-    except(ming.exc.MongoGone):
+    except(me.connection.ConnectionError):
         # Mongo's not up yet. Give it time.
         time.sleep(.1)
         print "sleeping"
+
+class IntVector(me.EmbeddedDocument):
+    '''A document for holding documents with three integer vectors: 
+        x, y and z.'''
+    x = me.IntField(default=0)
+    y = me.IntField(default=0)
+    z = me.IntField(default=0)
+
+class FloatVector(me.EmbeddedDocument):
+    '''A document for holding documents with three float vectors:
+        x, y and z.'''
+    x = me.FloatField(default=0)
+    y = me.FloatField(default=0)
+    z = me.FloatField(default=0)
+
+class Object(me.Document):
+    '''In-world objects.'''
+    name = me.StringField(default="")
+    resource = me.StringField(default="")
+
+    loc = me.EmbeddedDocumentField(IntVector)
+    rot = me.EmbeddedDocumentField(FloatVector)
+    scale = me.EmbeddedDocumentField(FloatVector)
+    vel = me.EmbeddedDocumentField(FloatVector)
+
+    states = me.ListField(me.StringField)
+    active = me.BooleanField(default=True)
+    last_modified = me.DateTimeField(default=datetime.datetime.now)
+
+
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
 
     @tornado.web.authenticated
     def get(self):
-        self.write(json.dumps(self.get_objects(), default=json_util.default))
+        self.write(json.dumps(self.get_objects(self.get_argument('since', None)), default=json_util.default))
 
-    def get_objects(self):
+    def get_objects(self, since=None):
         '''Gets a list of objects in the zone.
-        Uses cacheing, and should not be called except when a client 
-        connects to the zone initially'''
+        Uses cacheing, and should not be called without an argument except when
+        a client connects to the zone initially.'''
         cache_time = 10*365*24*60*60 # 10 Years.
 
         self.set_header('Last-Modified', datetime.datetime.utcnow())
         self.set_header('Expires', datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
         self.set_header('Cache-Control', 'max-age=' + str(cache_time))
 
-        objects = [
-                    {
-                        'id': str(uuid.uuid4()),
-                        'resource': 'barrel',
-                        'name': 'Barrel',
-                        'loc': (4, 6, 34),
-                        'rot': (45, 90, 0),
-                        'scale': (1, 1, 0.9),
-                        'vel': (0, 0, 0),
-                        'states': ('closed', 'whole', 'clickable'),
-                    }
-                  ]
-
         import time; time.sleep(4) # Simulate high server usage to make caching more obvious
 
         # Query the mongo objects database
-        objects = Object.m.find().all()
+        if since is not None:
+            objects = Object.objects(last_modified__gte=since)
+        else:
+            objects = Object.objects
+
         print objects
 
         return objects
@@ -120,11 +126,11 @@ class CharStatusHandler(BaseHandler):
         '''Sets a character's online status.'''
         # Set the character's status in the zone's database.
         try:
-            charobj = Object.m.find({'name':character}).one()
+            charobj = Object.objects.find(name=character)[0]
         except(ValueError):
             # No character named that.
             # So create an object for the player and save it.
-            charobj = Object.make()
+            charobj = Object()
             charobj.name = character
             charobj.states.append('player')
 
@@ -138,7 +144,7 @@ class CharStatusHandler(BaseHandler):
                     charobj.states.remove(s)
 
         charobj.states = list(set(charobj.states)) # Remove any duplicates.
-        charobj.m.save()
+        charobj.save()
 
         return charobj
 
@@ -195,22 +201,21 @@ def main(port=1300, zoneid="defaultzone"):
     server.listen(port)
 
     # If no objects in database:
-    print len(Object.m.find().all())
-    if len(Object.m.find().all()) == 0:
+    print len(Object.objects)
+    if len(Object.objects) == 0:
         # Insert some test data.
         print "Inserting test data."
         from helpers import coord_dictify as _
-        obj = Object({
-                'name': 'Barrel',
-                'resource': 'barrel',
-                'loc': _(4, 6, 34),
-                'rot': _(45, 90, 0),
-                'scale': _(1, 1, 0.9),
-                'vel': _(0, 0, 0),
-                'states': ['closed', 'whole', 'clickable'],
-                })
-        obj.m.save()
-        assert len(Object.m.find().all()) == 1
+        obj = Object()
+        obj.name ='Barrel'
+        obj.resource = 'barrel'
+        obj.loc = IntVector(x=4, y=6, z=34)
+        obj.rot = FloatVector(x=45, y=90, z=0)
+        obj.scale = FloatVector(x=1, y=1, z=.9)
+        obj.vel = FloatVector(x=0, y=0, z=0)
+        obj.states = ['closed', 'whole', 'clickable']
+        obj.save()
+        assert len(Object.objects) == 1
 
     print "Starting up Zoneserver..."
     server.start()
