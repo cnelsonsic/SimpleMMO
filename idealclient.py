@@ -202,6 +202,8 @@ if __name__ == "__main__":
     CURRENTZONE = zoneserver
 
     objects = get_all_objects()
+    import pprint
+    print pprint.pprint(objects)
     print "Got %d objects from the server." % len(objects)
 
     if set_status():

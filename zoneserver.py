@@ -74,7 +74,7 @@ class Object(me.Document):
     scale = me.EmbeddedDocumentField(FloatVector)
     vel = me.EmbeddedDocumentField(FloatVector)
 
-    states = me.ListField(me.StringField)
+    states = me.ListField(me.StringField())
     active = me.BooleanField(default=True)
     last_modified = me.DateTimeField(default=datetime.datetime.now)
 
@@ -85,7 +85,10 @@ class ObjectsHandler(BaseHandler):
 
     @tornado.web.authenticated
     def get(self):
-        self.write(json.dumps(self.get_objects(self.get_argument('since', None)), default=json_util.default))
+        since = self.get_argument('since', None)
+        objs = [m.to_mongo() for m in self.get_objects(since)]
+        retval = json.dumps(objs, default=json_util.default)
+        self.write(retval)
 
     def get_objects(self, since=None):
         '''Gets a list of objects in the zone.
@@ -97,15 +100,13 @@ class ObjectsHandler(BaseHandler):
         self.set_header('Expires', datetime.datetime.utcnow() + datetime.timedelta(seconds=cache_time))
         self.set_header('Cache-Control', 'max-age=' + str(cache_time))
 
-        import time; time.sleep(4) # Simulate high server usage to make caching more obvious
+#         import time; time.sleep(4) # Simulate high server usage to make caching more obvious
 
         # Query the mongo objects database
         if since is not None:
             objects = Object.objects(last_modified__gte=since)
         else:
             objects = Object.objects
-
-        print objects
 
         return objects
 
@@ -126,8 +127,8 @@ class CharStatusHandler(BaseHandler):
         '''Sets a character's online status.'''
         # Set the character's status in the zone's database.
         try:
-            charobj = Object.objects.find(name=character)[0]
-        except(ValueError):
+            charobj = Object.objects(name=character)[0]
+        except(IndexError):
             # No character named that.
             # So create an object for the player and save it.
             charobj = Object()
@@ -213,7 +214,7 @@ def main(port=1300, zoneid="defaultzone"):
         obj.rot = FloatVector(x=45, y=90, z=0)
         obj.scale = FloatVector(x=1, y=1, z=.9)
         obj.vel = FloatVector(x=0, y=0, z=0)
-        obj.states = ['closed', 'whole', 'clickable']
+        obj.states.extend(['closed', 'whole', 'clickable'])
         obj.save()
         assert len(Object.objects) == 1
 
