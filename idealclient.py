@@ -7,6 +7,7 @@ import exceptions
 from time import sleep
 import json
 import pdb
+import datetime
 
 import requests
 
@@ -37,6 +38,9 @@ CURRENTCHAR = ""
 
 # A global websocket connection for movement updates
 MOVEMENTWEBSOCKET = None
+
+# When was our last object update fetched.
+LASTOBJUPDATE = None
 
 class ConnectionError(exceptions.Exception):
     def __init__(self, param):
@@ -109,6 +113,16 @@ def get_all_objects(zone=None):
     if zone is None:
         zone = CURRENTZONE
     r = requests.get(''.join((zone, '/objects')), cookies=COOKIES)
+    if r.status_code == 200:
+        return json.loads(r.content)
+    else:
+        return r
+
+def get_objects_since(since, zone=None):
+    if zone is None:
+        zone = CURRENTZONE
+    data = {"since": since.strftime(DATETIME_FORMAT)}
+    r = requests.get(''.join((zone, '/objects')), cookies=COOKIES, params=data)
     if r.status_code == 200:
         return json.loads(r.content)
     else:
@@ -205,6 +219,7 @@ if __name__ == "__main__":
     import pprint
     print pprint.pprint(objects)
     print "Got %d objects from the server." % len(objects)
+    LASTOBJUPDATE = datetime.datetime.now()
 
     if set_status():
         print "Set status in the zone to online."
@@ -213,3 +228,5 @@ if __name__ == "__main__":
     if movresult:
         print "Sent our first movement packet to make sure we show up."
 
+    newobjs = get_objects_since(LASTOBJUPDATE)
+    print "Got %d new objects since our last full update." % len(newobjs)
