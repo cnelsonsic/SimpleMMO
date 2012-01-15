@@ -10,3 +10,6 @@ ZONESTARTUPTIME = 10
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S:%f'
 
+ADMINISTRATORS = ['admin']
+
+CLIENT_TIMEOUT = 10 # Client gives up connecting after 10 seconds.

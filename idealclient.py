@@ -15,6 +15,7 @@ from settings import *
 
 # Some settings:
 USERNAME = "user"
+ADMINUSERNAME = "admin"
 PASSWORD = "pass"
 DEBUG = True
 
@@ -48,6 +49,26 @@ class ConnectionError(exceptions.Exception):
         return
     def __str__(self):
         return repr(self.param)
+
+def retry(func, *args, **kwargs):
+    sleeptime = 2
+    server_exists = False
+    while not server_exists:
+        try:
+            server_exists = func(*args, **kwargs)
+            if server_exists:
+                break # If we connect succesfully, break out of the while
+        except Exception, exc:
+            # Exceptions mean we failed to connect, so retry.
+            if DEBUG:
+                print "Connecting failed:", exc
+
+        print "Reconnecting in %.01f seconds..." % sleeptime
+        sleep(sleeptime)
+        sleeptime = sleeptime**1.5
+        if sleeptime > CLIENT_TIMEOUT:
+            raise requests.exceptions.Timeout("Gave up after %d seconds." % int(CLIENT_TIMEOUT))
+    return True
 
 # Ping main server to make sure it's up, and really an authserver
 def ping_authserver():
@@ -180,21 +201,7 @@ if __name__ == "__main__":
 
     # Try to ping the authserver
     # If connecting fails, wait longer each time
-    sleeptime = 2
-    authserver_exists = False
-    while not authserver_exists:
-        try:
-            authserver_exists = ping_authserver()
-            if authserver_exists:
-                break # If we connect succesfully, break out of the while
-        except Exception, exc:
-            # ConnectionErrors mean we failed to connect, so retry.
-            if DEBUG:
-                print "Connecting failed:", exc
-
-        print "Reconnecting in %.01f seconds..." % sleeptime
-        sleep(sleeptime)
-        sleeptime = sleeptime**1.5
+    retry(ping_authserver)
 
     # Since the server is up, authenticate.
     if login(USERNAME, PASSWORD) is True:
