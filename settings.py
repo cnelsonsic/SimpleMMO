@@ -13,3 +13,8 @@ DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S:%f'
 ADMINISTRATORS = ['admin']
 
 CLIENT_TIMEOUT = 10 # Client gives up connecting after 10 seconds.
+
+MSPERSEC = 1000
+CLIENT_NETWORK_FPS = 10
+
+CLIENT_UPDATE_FREQ = MSPERSEC/CLIENT_NETWORK_FPS
