@@ -133,6 +133,7 @@ def get_zoneserver(zone):
 def get_all_objects(zone=None):
     if zone is None:
         zone = CURRENTZONE
+        print zone
     r = requests.get(''.join((zone, '/objects')), cookies=COOKIES)
     if r.status_code == 200:
         return json.loads(r.content)
@@ -186,8 +187,8 @@ def send_movement(zone=None, character=None, xmod=0, ymod=0, zmod=0):
     if character is None:
         character = CURRENTCHAR
 
-    data = {'character': character, 'xmod': xmod, 'ymod': ymod, 'zmod': zmod}
-    r = requests.post(''.join((zone, '/movement')), cookies=COOKIES)
+    data = {'character': character, 'x': xmod, 'y': ymod, 'z': zmod}
+    r = requests.post(''.join((zone, '/movement')), cookies=COOKIES, data=data)
     if r.status_code == 200:
         return True
     else:
