@@ -13,7 +13,7 @@ import tornado
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-from settings import DATETIME_FORMAT
+from settings import DATETIME_FORMAT, CLIENT_UPDATE_FREQ
 
 # from ming_models import *
 
@@ -38,7 +38,7 @@ import mongoengine as me
 
 tornado.options.parse_command_line()
 zoneid = options.zoneid
-print zoneid
+print "ZoneID: %s" % zoneid
 
 bind = DataStore('mongodb://localhost:27017/', database=zoneid)
 SESSION = Session(bind)
@@ -106,10 +106,8 @@ class ObjectsHandler(BaseHandler):
 
     def get_objects(self, since=None):
         '''Gets a list of objects in the zone.
-        Uses cacheing, and should not be called without an argument except when
+        Should not be called without an argument except when
         a client connects to the zone initially.'''
-
-#         import time; time.sleep(4) # Simulate high server usage to make caching more obvious
 
         # Query the mongo objects database
         if since is not None:
@@ -137,7 +135,8 @@ class CharStatusHandler(BaseHandler):
         # Set the character's status in the zone's database.
         try:
             charobj = Object.objects(name=character).first()
-        except(IndexError):
+            charobj.states
+        except(IndexError, AttributeError):
             # No character named that.
             # So create an object for the player and save it.
             charobj = Object()
@@ -164,18 +163,38 @@ class MovementHandler(BaseHandler):
     @tornado.web.authenticated
     def post(self):
         character = self.get_argument('character', '')
-        xmod = self.get_argument('x', 0)
-        ymod = self.get_argument('y', 0)
-        zmod = self.get_argument('z', 0)
+        xmod = int(self.get_argument('x', 0))
+        ymod = int(self.get_argument('y', 0))
+        zmod = int(self.get_argument('z', 0))
+        logging.info("Locmod is: %d, %d, %d" % (xmod, ymod, zmod))
 
-        self.set_movement(character, xmod, ymod, zmod)
-        return True
+
+        return self.set_movement(character, xmod, ymod, zmod)
 
     def set_movement(self, character, xmod, ymod, zmod):
-        pass
-        # Set the character's new position based on the x, y and z modifiers.
 
-# TODO: A char movmeent handler token handler, which gives the user a token to use.
+        # TODO: Check that user owns character.
+        user = self.get_secure_cookie('user')
+        try:
+            charobj = Object.objects(name=character).first()
+            charobj.loc
+        except(AttributeError):
+            # Character doesn't exist, create a new one.
+            self.set_status(500)
+            self.write('Character "%s" was not set to online, and didn\'t exist in the database.' % character)
+            return
+
+        # Set the character's new position based on the x, y and z modifiers.
+        if charobj.loc is not None:
+            charobj.loc['x'] += xmod
+            charobj.loc['y'] += ymod
+            charobj.loc['z'] += zmod
+            charobj.last_modified = datetime.datetime.now()
+        else:
+            charobj.loc = IntVector(x=0, y=0, z=0)
+        charobj.save()
+
+# TODO: A char movement handler token handler, which gives the user a token to use.
 class WSMovementHandler(WebSocketHandler):
     '''This is a sample movement handler, which really should be replaced with
     something a bit more efficient and/or featureful.'''
@@ -192,12 +211,32 @@ class WSMovementHandler(WebSocketHandler):
         command = m['command']
         if command == "mov":
             self.set_movement(m['char'], m['x'], m['y'], m['z'])
-        
+
         self.write_message("ok")
 
     def set_movement(self, character, xmod, ymod, zmod):
         pass
         # Set the character's new position based on the x, y and z modifiers.
+
+class AdminHandler(BaseHandler):
+
+    def __init__(self, *args, **kwargs):
+        super(AdminHandler, self).__init__(*args, **kwargs)
+
+        self.commands = {'echo': echo}
+
+    def echo(self, arg):
+        return arg
+
+    @tornado.web.authenticated
+    def post(self):
+        if self.get_secure_cookie('admin') == 'true':
+            command = self.get_argument('command', '')
+            args = json.loads(self.get_argument('args', ''))
+            if command in self.commands:
+                return self.commands['command'](*args)
+        else:
+            raise tornado.web.HTTPError(403)
 
 
 def main(port=1300, zoneid="defaultzone"):
@@ -206,16 +245,15 @@ def main(port=1300, zoneid="defaultzone"):
     handlers.append((r"/objects", ObjectsHandler))
     handlers.append((r"/setstatus", CharStatusHandler))
     handlers.append((r"/movement", MovementHandler))
+    handlers.append((r"/admin", AdminHandler))
 
     server = BaseServer(handlers)
     server.listen(port)
 
     # If no objects in database:
-    print len(Object.objects)
     if len(Object.objects) == 0:
         # Insert some test data.
         print "Inserting test data."
-        from helpers import coord_dictify as _
         obj = Object()
         obj.name ='Barrel'
         obj.resource = 'barrel'
