@@ -5,3 +5,4 @@ pymongo
 mongoengine
 supervisor
 supervisor-twiddler
+PySide
