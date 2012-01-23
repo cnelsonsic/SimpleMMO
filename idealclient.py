@@ -182,6 +182,10 @@ def send_movement_ws(zone, character, xmod=0, ymod=0):
     return json.loads(ws.recv())
 
 def send_movement(zone=None, character=None, xmod=0, ymod=0, zmod=0):
+    if xmod is 0 and ymod is 0 and zmod is 0:
+        # No-op.
+        return
+
     if zone is None:
         zone = CURRENTZONE
     if character is None:
@@ -213,6 +217,8 @@ if __name__ == "__main__":
 
     global CURRENTCHAR
     CURRENTCHAR = chars[0]
+    import random
+    CURRENTCHAR = ''.join([random.choice(list("qwertyuiopasdfghjklzxcvbnm")) for c in range(10)]).title()
 
     zone = get_zone()
     print "Got %r as zone." % zone
@@ -232,9 +238,16 @@ if __name__ == "__main__":
     if set_status():
         print "Set status in the zone to online."
 
-    movresult = send_movement(xmod=0, ymod=0)
+    movresult = send_movement(xmod=0, ymod=0, zmod=1)
     if movresult:
         print "Sent our first movement packet to make sure we show up."
 
     newobjs = get_objects_since(LASTOBJUPDATE)
     print "Got %d new objects since our last full update." % len(newobjs)
+
+    from random import randint
+    import time
+    while True:
+        movresult = send_movement(xmod=randint(-1, 1), ymod=randint(-1, 1))
+
+        time.sleep(.5)
