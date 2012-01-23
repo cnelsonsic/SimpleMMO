@@ -44,6 +44,7 @@ class ZoneHandler(BaseHandler):
         # Make sure owner is real
 
         # Try to start a zone server
+        serverurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
         pname = ''.join((instance_type, name, owner))
         from startzone import start_zone
         try:
@@ -56,7 +57,6 @@ class ZoneHandler(BaseHandler):
                 raise
 
 
-        serverurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
         # Wait for server to come up
         # Or just query it on "/" every hundred ms or so.
         import time
