@@ -15,8 +15,6 @@ from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 from settings import DATETIME_FORMAT, CLIENT_UPDATE_FREQ
 
-# from ming_models import *
-
 from tornado.options import define, options
 try:
     from tornado.websocket import WebSocketHandler
@@ -28,20 +26,12 @@ define("port", default=1300, help="Run on the given port.", type=int)
 define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=str)
 
 from pymongo import json_util
-import ming
-from ming import Session
-from ming import Field, schema
-from ming.declarative import Document
-from ming.datastore import DataStore
 
 import mongoengine as me
 
 tornado.options.parse_command_line()
 zoneid = options.zoneid
 print "ZoneID: %s" % zoneid
-
-bind = DataStore('mongodb://localhost:27017/', database=zoneid)
-SESSION = Session(bind)
 
 # Make sure mongodb is up
 while True:
