@@ -22,14 +22,29 @@ import xmlrpclib
 import supervisor
 from supervisor.xmlrpc import SupervisorTransport
 
-def _add_process(twiddlerproxy, processgroup, zoneid, settings):
+from settings import ZONESTARTPORT, ZONEENDPORT
+
+from elixir_models import Zone, session
+
+def _add_process(twiddlerproxy, processgroup, zoneid, settings, port):
     '''Adds a zone process to supervisor and does some checks to only start it
     if it isn't already running, and restart it if it's not.'''
 
     s = twiddlerproxy
     try:
         retval = s.twiddler.addProgramToGroup(processgroup, zoneid, settings)
+
         print "Added successfully."
+
+        zone = Zone.query.filter_by(zoneid=zoneid).first()
+        if zone:
+            # This zone already exists, so update the port number.
+            zone.port = port
+        else:
+            # This zone doesn't exist. Create a new one.
+            Zone(zoneid=zoneid, port=port)
+        session.commit()
+
     except(xmlrpclib.Fault), exc:
         if "BAD_NAME" in exc.faultString:
             try:
@@ -42,16 +57,20 @@ def _add_process(twiddlerproxy, processgroup, zoneid, settings):
                     retval = True
             else:
                 print "Restarting stopped/crashed zone."
+                # Removing the process worked, delete the zone from the database.
+                Zone.query.filter_by(zoneid=zoneid).delete()
+                session.commit()
                 # Start zone again
-                retval = _add_process(s, processgroup, zoneid, settings)
+                retval = _add_process(s, processgroup, zoneid, settings, port)
         else:
             print exc
             print exc.faultCode, exc.faultString
             raise
     finally:
+        session.commit()
         return retval
 
-def start_zone(port=1300, zoneid="defaultzone", processgroup='zones', autorestart=False):
+def start_zone(port=1300, zoneid="playerinstance-defaultzone-DefaultPlayer", processgroup='zones', autorestart=False):
     s = xmlrpclib.ServerProxy('http://localhost:9001')
 
     import socket
@@ -61,12 +80,21 @@ def start_zone(port=1300, zoneid="defaultzone", processgroup='zones', autorestar
         raise UserWarning("Could not connect to supervisor: %s" % exc)
 
     if float(version) >= 0.3:
+        # Query through all our zones to get a good port number.
+        taken_ports = [p[0] for p in session.query(Zone.port).all()]
+        for port in xrange(ZONESTARTPORT, ZONEENDPORT):
+            if port not in taken_ports:
+                break
+        print "Chose port # %d" % port
+
         command = '/usr/bin/python zoneserver.py --port=%d --zoneid=%s' % (int(port), zoneid)
         settings = {'command': command, 'autostart': str(True), 'autorestart': str(autorestart), 'redirect_stderr': str(True)}
-        addtogroup = _add_process(s, processgroup, zoneid, settings)
+        addtogroup = _add_process(s, processgroup, zoneid, settings, port)
 
         if addtogroup:
-            return True
+            from settings import PROTOCOL, HOSTNAME
+            serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
+            return serverurl
         else:
             raise UserWarning("Couldn't add zone %s to process group." % zoneid)
     else:
