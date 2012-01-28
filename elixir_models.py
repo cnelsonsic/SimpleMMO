@@ -22,8 +22,13 @@
 
 from elixir import Entity, Field
 from elixir import OneToMany, ManyToOne
-from elixir import UnicodeText
+from elixir import UnicodeText, Integer
 from elixir import using_options
+from elixir import metadata, setup_all, create_all
+from elixir import session
+
+metadata.bind = "sqlite:///simplemmo.sqlite"
+metadata.bind.echo = True
 
 class User(Entity):
     '''User contains details useful for authenticating a user for when they
@@ -52,19 +57,18 @@ class Character(Entity):
     def __repr__(self):
         return '<Character "%s" owned by "%s">' % (self.name, self.user.username)
 
+class Zone(Entity):
+    '''Zone stores connection information about the zoneservers.'''
+    using_options(tablename="zone")
+
+    zoneid = Field(UnicodeText, unique=True, primary_key=True)
+    port = Field(Integer, unique=True)
+
+
+setup_all()
+create_all()
+
 if __name__ == "__main__":
-    from elixir import metadata, setup_all, create_all, session
-
-    import os
-    try:
-        os.remove("models.sqlite")
-    except(OSError):
-        pass
-
-    metadata.bind = "sqlite:///models.sqlite"
-    metadata.bind.echo = True
-    setup_all()
-    create_all()
 
     u = User(username="user", password="pass")
     Character(name="Groxnor", user=u)
