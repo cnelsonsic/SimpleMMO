@@ -25,11 +25,13 @@ A server providing URLs to ZoneServers.
 
 import json
 import time
+import logging
 
 import tornado
 import requests
 
-from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME
+from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME,\
+                        ZONESTARTPORT, ZONEENDPORT
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
@@ -37,6 +39,18 @@ ZONEPIDS = []
 NEXTCLEANUP = time.time()+(5*60)
 
 JOBS = []
+
+from elixir_models import *
+
+# On startup, iterate through entries in zones table. See if they are up, if not, delete them.
+for port in [z[0] for z in session.query(Zone.port).all()]:
+    serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
+    try:
+        requests.get(serverurl)
+    except(requests.ConnectionError):
+        # Server is down, remove it from the zones table.
+        Zone.query.filter_by(port=port).delete()
+        session.commit()
 
 class ZoneHandler(BaseHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
@@ -51,24 +65,21 @@ class ZoneHandler(BaseHandler):
     def get_url(self, zoneid):
         '''Gets the zone URL from the database based on its id.
         ZoneServer ports start at 1300.'''
-        return self.launch_zone('playerinstance', 'GhibliHills', 'Groxnor')
+        instance_type, name, owner = zoneid.split("-")
+        return self.launch_zone(instance_type, name, owner)
 
     def launch_zone(self, instance_type, name, owner):
         '''Starts a zone given the type of instance, name and character that owns it.
         Returns the zone URL for the new zone server.'''
-        # Query the database for an unused zone port.
-        port = 1300
-
         # Make sure the instance type is allowed
         # Make sure the name exists
         # Make sure owner is real
 
         # Try to start a zone server
-        serverurl = ''.join((PROTOCOL, '://', HOSTNAME, ':', str(port)))
         pname = ''.join((instance_type, name, owner))
         from startzone import start_zone
         try:
-            start_zone(port, pname)
+            serverurl = start_zone(zoneid=pname)
         except(UserWarning), exc:
             if "Zone already exists in process list." in exc:
                 # Zone is already up
