@@ -25,6 +25,12 @@ AUTHSERVERPORT = 1234
 CHARSERVERPORT = 1235
 MASTERZONESERVERPORT = 1236
 
+import subprocess
+COOKIE_SECRET = subprocess.check_output('git rev-parse HEAD', shell=True).strip()
+
+AGPL_STRING = "BEGIN AGPL LICENSE BLOCK"
+SKIP_FOLDERS = ("/.", ".git", ".svn", "/build/", "/srv/")
+
 ZONESTARTPORT = 1300
 ZONEENDPORT = 1400
 

@@ -46,25 +46,74 @@ class SimpleHandler(BaseHandler):
     def get(self):
         self.write(self.output)
 
+
+from subprocess import Popen, PIPE
+def get_gitsha():
+    return Popen("git rev-parse --short HEAD", shell=True, stdout=PIPE).communicate()[0].strip()
+def get_commits():
+    return Popen("git rev-list --all | wc -l", shell=True, stdout=PIPE).communicate()[0].strip()
+
 class VersionHandler(BaseHandler):
     def get(self):
-        from subprocess import Popen, PIPE
-        gitsha = Popen("git rev-parse --short HEAD", shell=True, stdout=PIPE).communicate()[0].strip()
-        commits = Popen("git rev-list --all | wc -l", shell=True, stdout=PIPE).communicate()[0].strip()
+        gitsha = get_gitsha()
+        commits = get_commits()
         self.write('\n'.join((gitsha, commits)))
 
+class SelfServe(BaseHandler):
+    '''Provides a method to comply with AGPL licensing.
+    This allows a request handler to respond to something like "/source"
+    and iterate through the local directory, adding files it finds with an
+    AGPL license to a zipfile and returning that when it is done.
+    It skips any directories that contain any of the strings in settings.SKIP_FOLDERS.
+    '''
+
+    def get(self):
+        from zipfile import ZipFile
+        import os
+        import uuid
+        # Get all files in this folder and all folders below it.
+        outfile = "/tmp/%s.zip" % str(uuid.uuid4())
+        z = ZipFile(outfile, "w")
+        for root, dirs, files in os.walk("."):
+            skip = False
+            for no in SKIP_FOLDERS:
+                if no in root:
+                    skip = True
+                    break
+            if skip:
+                continue
+
+            for filename in files:
+                # Search them all for "BEGIN AGPL LICENSE BLOCK"
+                print "Searching %s" % os.path.join(root, filename)
+                if AGPL_STRING in open(os.path.join(root, filename), "r").read():
+                    print "Added %s to archive." % filename
+                    z.write(os.path.join(root, filename))
+        z.close()
+        # Zip all those up and return it.
+        self.set_header('content-type', 'application/zip')
+        self.set_header('content-disposition', "attachment;filename=SimpleMMO_%s-%s.zip" % (get_commits(), get_gitsha()))
+        with open(outfile, "r") as f:
+            archive = f.read()
+        # Delete outfile.
+        self.write(archive)
+
 class BaseServer(Application):
-    def __init__(self, handlers):
+    def __init__(self, extra_handlers):
         '''Expects a list of tuple handlers like:
                 [(r"/", MainHandler), (r"/chatsocket", ChatSocketHandler),]
         '''
         settings = {
 #                 "cookie_secret": ''.join([chr(randint(32, 126)) for _ in xrange(75)]),
-                "cookie_secret": subprocess.check_output('git rev-parse HEAD', shell=True).strip(),
+                "cookie_secret": COOKIE_SECRET,
                 "login_url": ''.join((PROTOCOL, "://", HOSTNAME, ":", str(AUTHSERVERPORT), "/login")),
                 }
 
+        handlers = []
         handlers.append((r"/version", VersionHandler))
+        handlers.append((r"/source", SelfServe))
+
+        handlers.extend(extra_handlers)
 
         Application.__init__(self, handlers, debug=True, **settings)
 
