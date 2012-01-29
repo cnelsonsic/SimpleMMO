@@ -132,8 +132,11 @@ class CharacterSelect(QDialog):
         worldviewer = WorldViewer(charname=char, currentzone=currentzone)
         global worldviewerdebug
         worldviewerdebug = WorldViewerDebug(worldviewer)
+        global adminpanel
+        adminpanel = AdminPanel(charname=char, currentzone=currentzone)
         worldviewerdebug.show()
         worldviewer.show()
+        adminpanel.show()
 
         # We're all done here.
         self.accept()
@@ -341,6 +344,22 @@ class WorldObject(QGraphicsPixmapItem):
         objloc = obj.get('loc', {'x':0, 'y':0})
         self.setPos(int(objloc['x']), int(objloc['y']))
         self.setPixmap(QIcon.fromTheme('user-online').pixmap(32))
+        self.setToolTip(obj.get('name', 'Object'))
+
+class AdminPanel(WorldViewer):
+    def __init__(self, *args, **kwargs):
+        super(AdminPanel, self).__init__(*args, **kwargs)
+
+        self.view.scale(1/5.0, 1/5.0)
+
+        # Initialize some buttons to do administrative things:
+        #   Turn on noclip
+        #   Turn on warping: on mouseclick, move
+        #   Insert a new object into the zone.
+        #   Show a palette of objects in-world, sorted by last used or number of instances
+        #   Yank the current object into the buffer
+        #   Spawn the object in the buffer under currentpos
+
 
 # Create a Qt application
 app = QApplication(sys.argv)
