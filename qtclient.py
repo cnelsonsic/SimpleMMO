@@ -193,6 +193,9 @@ class WorldViewer(QWidget):
 
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
+        self.view.scale(5, 5)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
 #         pb = QPushButton("Push!")
 #         stylesheet = '''
@@ -291,9 +294,9 @@ class WorldViewer(QWidget):
         if _in_set(self.keyspressed, Qt.Key_Right, Qt.Key_D):
             x += 1
         if _in_set(self.keyspressed, Qt.Key_Up, Qt.Key_W):
-            y += 1
-        if _in_set(self.keyspressed, Qt.Key_Down, Qt.Key_S):
             y -= 1
+        if _in_set(self.keyspressed, Qt.Key_Down, Qt.Key_S):
+            y += 1
 
         client.send_movement(self.currentzone, self.charname, x, y, 0)
         print x, y
@@ -310,8 +313,14 @@ class WorldViewer(QWidget):
                 self.scene.addItem(objwidget)
             else:
                 # Find any differences between the objects, and adjust them on the WorldObject
-                self.world_object_widgets[obj_id].setOffset(int(obj['loc']['x']), int(obj['loc']['y']))
+                objwidget = self.world_object_widgets[obj_id]
+                objwidget.setOffset(int(obj['loc']['x']), int(obj['loc']['y']))
                 print "Updated widget."
+
+            # Update our view if the name is the same as our character.
+            if obj['name'] == self.charname:
+                self.view.centerOn(objwidget)
+                self.view.ensureVisible(objwidget, xmargin=300, ymargin=300)
 
     def update_objects(self):
         '''Gets an upated list of objects from the zone and stores them locally.'''
