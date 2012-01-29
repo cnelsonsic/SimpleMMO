@@ -90,7 +90,14 @@ class Object(me.Document):
     active = me.BooleanField(default=True)
     last_modified = me.DateTimeField(default=datetime.datetime.now)
 
+    meta = {'indexes': ['last_modified',
+                        'loc.x', 'loc.y', 'loc.z',
+                        'states',
+                        'active']}
 
+class Character(Object):
+    '''Players' characters.'''
+    speed = me.FloatField(default=5)
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
@@ -143,12 +150,12 @@ class CharStatusHandler(BaseHandler):
         '''Sets a character's online status.'''
         # Set the character's status in the zone's database.
         try:
-            charobj = Object.objects(name=character).first()
+            charobj = Character.objects(name=character).first()
             charobj.states
         except(IndexError, AttributeError):
             # No character named that.
             # So create an object for the player and save it.
-            charobj = Object()
+            charobj = Character()
             charobj.name = character
             charobj.states.append('player')
 
@@ -185,7 +192,7 @@ class MovementHandler(BaseHandler):
         # TODO: Check that user owns character.
         user = self.get_secure_cookie('user')
         try:
-            charobj = Object.objects(name=character).first()
+            charobj = Character.objects(name=character).first()
             charobj.loc
         except(AttributeError):
             # Character doesn't exist, create a new one.
@@ -195,9 +202,9 @@ class MovementHandler(BaseHandler):
 
         # Set the character's new position based on the x, y and z modifiers.
         if charobj.loc is not None:
-            charobj.loc['x'] += xmod
-            charobj.loc['y'] += ymod
-            charobj.loc['z'] += zmod
+            charobj.loc['x'] += xmod*charobj.speed
+            charobj.loc['y'] += ymod*charobj.speed
+            charobj.loc['z'] += zmod*charobj.speed
             charobj.last_modified = datetime.datetime.now()
         else:
             charobj.loc = IntVector(x=0, y=0, z=0)
@@ -232,7 +239,7 @@ class AdminHandler(BaseHandler):
     def __init__(self, *args, **kwargs):
         super(AdminHandler, self).__init__(*args, **kwargs)
 
-        self.commands = {'echo': echo}
+        self.commands = {'echo': self.echo}
 
     def echo(self, arg):
         return arg
