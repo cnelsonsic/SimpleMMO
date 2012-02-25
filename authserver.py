@@ -35,6 +35,8 @@ from settings import AUTHSERVERPORT, ADMINISTRATORS
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
+from elixir_models import User, Character
+
 class PingHandler(BaseHandler):
     def get(self):
         self.write("pong")
@@ -50,15 +52,15 @@ class AuthHandler(BaseHandler):
             self.set_admin(username)
             self.write('Login successful.')
         else:
-            self.write('Login Failed, username and/or password incorrect.')
-            raise tornado.web.HTTPError(401)
+            raise tornado.web.HTTPError(401, 'Login Failed, username and/or password incorrect.')
 
     def authenticate(self, username, password):
         '''Compares a username/password pair against that in the database.
         If they match, return True.
         Else, return False.'''
         # Do some database stuff here to verify the user.
-        return True
+        user = User.query.filter_by(username=username, password=password).first()
+        return True if user else False
 
     def set_admin(self, user):
         # Look up username in admins list in database
