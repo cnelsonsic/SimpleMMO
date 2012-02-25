@@ -1,0 +1,12 @@
+[run]
+branch = True
+omit =
+    /usr/lib/python2.7/site-packages/*
+
+[report]
+omit =
+    /usr/lib/python2.7/site-packages/*
+precision = 2
+
+[html]
+directory = coveragehtml
