@@ -79,7 +79,7 @@ class ZoneHandler(BaseHandler):
         pname = ''.join((instance_type, name, owner))
         from startzone import start_zone
         try:
-            serverurl = start_zone(zoneid=pname)
+            serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
         except(UserWarning), exc:
             if "Zone already exists in process list." in exc:
                 # Zone is already up

@@ -70,7 +70,7 @@ def _add_process(twiddlerproxy, processgroup, zoneid, settings, port):
         session.commit()
         return retval
 
-def start_zone(port=1300, zoneid="playerinstance-defaultzone-DefaultPlayer", processgroup='zones', autorestart=False):
+def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance", owner="Groxnor", processgroup='zones', autorestart=False):
     s = xmlrpclib.ServerProxy('http://localhost:9001')
 
     import socket
@@ -87,7 +87,8 @@ def start_zone(port=1300, zoneid="playerinstance-defaultzone-DefaultPlayer", pro
                 break
         print "Chose port # %d" % port
 
-        command = '/usr/bin/python zoneserver.py --port=%d --zoneid=%s' % (int(port), zoneid)
+        command = '/usr/bin/python zoneserver.py --port=%d --zonename=%s --instancetype=%s --owner=%s' % (int(port), zonename, instancetype, owner)
+        zoneid = '-'.join((instancetype, zonename, owner))
         settings = {'command': command, 'autostart': str(True), 'autorestart': str(autorestart), 'redirect_stderr': str(True)}
         addtogroup = _add_process(s, processgroup, zoneid, settings, port)
 

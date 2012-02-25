@@ -42,14 +42,24 @@ except(ImportError):
     WebSocketHandler = BaseHandler
 
 define("port", default=1300, help="Run on the given port.", type=int)
-define("zoneid", default='defaultzone', help="Specify what zone to load from disk.", type=str)
+define("zonename", default='defaultzone', help="Specify what zone to load from disk.", type=str)
+define("instancetype", default='playerinstance', help="Specify what type of zone this is.", type=str)
+define("owner", default='None', help="Specify who owns this zone.", type=str)
 
 from pymongo import json_util
 
 import mongoengine as me
 
 tornado.options.parse_command_line()
-zoneid = options.zoneid
+
+# Instance Type
+instancetype = options.instancetype
+# Zone name
+zonename = options.zonename
+# Owner
+owner = options.owner
+
+zoneid = '-'.join((instancetype, zonename, owner))
 print "ZoneID: %s" % zoneid
 
 # Make sure mongodb is up
@@ -62,42 +72,14 @@ while True:
         time.sleep(.1)
         print "sleeping"
 
-class IntVector(me.EmbeddedDocument):
-    '''A document for holding documents with three integer vectors: 
-        x, y and z.'''
-    x = me.IntField(default=0)
-    y = me.IntField(default=0)
-    z = me.IntField(default=0)
+from mongoengine_models import *
 
-class FloatVector(me.EmbeddedDocument):
-    '''A document for holding documents with three float vectors:
-        x, y and z.'''
-    x = me.FloatField(default=0)
-    y = me.FloatField(default=0)
-    z = me.FloatField(default=0)
-
-class Object(me.Document):
-    '''In-world objects.'''
-    name = me.StringField(default="")
-    resource = me.StringField(default="")
-
-    loc = me.EmbeddedDocumentField(IntVector)
-    rot = me.EmbeddedDocumentField(FloatVector)
-    scale = me.EmbeddedDocumentField(FloatVector)
-    vel = me.EmbeddedDocumentField(FloatVector)
-
-    states = me.ListField(me.StringField())
-    active = me.BooleanField(default=True)
-    last_modified = me.DateTimeField(default=datetime.datetime.now)
-
-    meta = {'indexes': ['last_modified',
-                        'loc.x', 'loc.y', 'loc.z',
-                        'states',
-                        'active']}
-
-class Character(Object):
-    '''Players' characters.'''
-    speed = me.FloatField(default=5)
+print "Loading %s's data." % zonename
+from importlib import import_module
+# Import the zone's init script
+zonemodule = import_module('games.zones.'+zonename)
+# Initialize the zone
+zonemodule.Zone()
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
@@ -255,7 +237,7 @@ class AdminHandler(BaseHandler):
             raise tornado.web.HTTPError(403)
 
 
-def main(port=1300, zoneid="defaultzone"):
+def main(port=1300):
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/objects", ObjectsHandler))
@@ -266,23 +248,8 @@ def main(port=1300, zoneid="defaultzone"):
     server = BaseServer(handlers)
     server.listen(port)
 
-    # If no objects in database:
-    if len(Object.objects) == 0:
-        # Insert some test data.
-        print "Inserting test data."
-        obj = Object()
-        obj.name ='Barrel'
-        obj.resource = 'barrel'
-        obj.loc = IntVector(x=4, y=6, z=34)
-        obj.rot = FloatVector(x=45, y=90, z=0)
-        obj.scale = FloatVector(x=1, y=1, z=.9)
-        obj.vel = FloatVector(x=0, y=0, z=0)
-        obj.states.extend(['closed', 'whole', 'clickable'])
-        obj.save()
-        assert len(Object.objects) == 1
-
     print "Starting up Zoneserver..."
     server.start()
 
 if __name__ == "__main__":
-    main(port=options.port, zoneid=options.zoneid)
+    main(port=options.port)

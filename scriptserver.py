@@ -21,6 +21,7 @@
 
 '''ZoneScriptServer
 A server that runs scripts for all the objects in a zone.
+This should be started by the ZoneServer.
 '''
 
 import threading
@@ -33,27 +34,45 @@ from settings import CLIENT_UPDATE_FREQ
 
 from basetickserver import BaseTickServer
 
+import mongoengine as me
+
 class ZoneScriptRunner(BaseTickServer):
     '''This is a class that holds all sorts of methods for running scripts for
     a zone. It does not talk to the HTTP handler(s) directly, but instead uses
     the same database. It might take player movement updates directly in the
-    future for speed, but this is unlikely.
-    This should be started by the ZoneServer.'''
+    future for speed, but this is unlikely.'''
 
-    def __init__(self):
+    def __init__(self, zoneid):
         super(ZoneScriptRunner, self).__init__()
+
+        # Make sure mongodb is up
+        while True:
+            try:
+                me.connect(zoneid)
+                break
+            except(me.connection.ConnectionError):
+                # Mongo's not up yet. Give it time.
+                time.sleep(.1)
 
         self.scriptnames = []
         self.scripts = {}
 
         # Query DB for a list of all objects' script names,
         #   ordered according to proximity to players
-        # Store list of script names in self
-        # For each script name in the list:
-        #   Import those by name via __import__
-        #   For each class object in each one's dir()
-        #       call class()
-        #       store object instance in a dict like {scriptname: classinstance}
+        for o in ScriptedObject.objects(scripts__exists):
+            # Store list of script names in self
+#             self.scriptnames.extend(o.scripts)
+
+            # For each script name in the list:
+            for script in o.scripts:
+                self.scriptnames[script] = []
+                # Import those by name via __import__
+                for c in dir(__import__(script)):
+                    c()
+                    # For each class object in each one's dir()
+                    # Instantiate that class.
+                    # Store object instance in a dict like {scriptname: classinstance}
+
 
     def tick(self):
         '''Iterate through all known scripts and call their tick method.'''

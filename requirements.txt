@@ -3,6 +3,8 @@ elixir
 requests
 pymongo
 mongoengine
+pymunk
 supervisor
 supervisor-twiddler
+
 PySide
