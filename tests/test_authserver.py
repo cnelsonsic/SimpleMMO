@@ -87,7 +87,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
             result[name] = decode_signed_value(COOKIE_SECRET, name, value.strip('"'))
         return result
 
-    def test_authenticate_valid_userpass(self):
+    def test_authenticate(self):
         # Setup
         username = "gooduser"
         password = "goodpass"
