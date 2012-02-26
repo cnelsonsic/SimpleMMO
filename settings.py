@@ -18,6 +18,7 @@
 #
 # ##### END AGPL LICENSE BLOCK #####
 
+# Global Settings
 PROTOCOL = "http"
 HOSTNAME = "localhost"
 
@@ -25,26 +26,28 @@ AUTHSERVERPORT = 1234
 CHARSERVERPORT = 1235
 MASTERZONESERVERPORT = 1236
 
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S:%f'
+
 import subprocess
 COOKIE_SECRET = subprocess.check_output('git rev-parse HEAD', shell=True).strip()
 
 AGPL_STRING = "BEGIN AGPL LICENSE BLOCK"
 SKIP_FOLDERS = ("/.", ".git", ".svn", "/build/", "/srv/")
 
-ZONESTARTPORT = 1300
-ZONEENDPORT = 1400
-
-ZONESTARTUPTIME = 10
-
-MAX_ZONE_OBJECT_MESSAGE_COUNT = 1000
-
-DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S:%f'
-
+# AuthServer Settings
 ADMINISTRATORS = ['admin']
 
-CLIENT_TIMEOUT = 10 # Client gives up connecting after 10 seconds.
+# ZoneServer Settings
+ZONESTARTPORT = 1300
+ZONEENDPORT = 1400
+ZONESTARTUPTIME = 10
 
+# ScriptServer Settings
+MAX_ZONE_OBJECT_MESSAGE_COUNT = 1000
+MAX_DICE_AMOUNT = 100
+
+# Client Settings
+CLIENT_TIMEOUT = 10 # Client gives up connecting after 10 seconds.
 MSPERSEC = 1000
 CLIENT_NETWORK_FPS = 10
-
 CLIENT_UPDATE_FREQ = MSPERSEC/CLIENT_NETWORK_FPS
