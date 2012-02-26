@@ -2,7 +2,8 @@
 
 from random import randint, uniform
 
-from mongoengine_models import Object, IntVector, FloatVector
+from mongoengine_models import Object, ScriptedObject
+from mongoengine_models import IntVector, FloatVector
 
 # Some helpers for random.
 def randloc():
@@ -69,7 +70,18 @@ class Zone(object):
             obj.states.extend(['closed', 'whole', 'clickable'])
             obj.save()
 
+        # Place 10 chickens randomly:
+        for i in xrange(10):
+            obj = ScriptedObject()
+            obj.name = "Chicken #%d" % i
+            obj.resource = 'chicken'
+            obj.loc = IntVector(x=randloc(), y=randloc(), z=randloc())
+            obj.rot = FloatVector(x=randrot(), y=randrot(), z=randrot())
+            obj.scale = FloatVector(x=randscale(), y=randscale(), z=randscale())
+            obj.vel = FloatVector(x=0, y=0, z=0)
+            obj.states.extend(['alive', 'whole', 'clickable'])
+            obj.scripts = ['games.objects.chicken']
+            obj.save()
+
         print [o.name for o in Object.objects()]
-
-
 
