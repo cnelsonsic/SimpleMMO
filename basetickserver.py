@@ -27,9 +27,6 @@ A server that should be overridden to provide a server with its own internal loo
 
 import time
 
-# import sched
-# s = sched.scheduler(time.time, time.sleep)
-
 from settings import CLIENT_UPDATE_FREQ, CLIENT_NETWORK_FPS
 
 class BaseTickServer(object):
