@@ -31,11 +31,16 @@ class Object(me.Document):
     active = me.BooleanField(default=True)
     last_modified = me.DateTimeField(default=datetime.datetime.now)
 
-
     meta = {'indexes': ['last_modified',
                         'loc.x', 'loc.y', 'loc.z',
                         'states',
                         'active']}
+
+    def set_modified(self, date_time=None):
+        if date_time is None:
+            date_time = datetime.datetime.now()
+        self.last_modified = date_time
+        self.save()
 
 class ScriptedObject(Object):
     scripts = me.ListField(me.StringField())
