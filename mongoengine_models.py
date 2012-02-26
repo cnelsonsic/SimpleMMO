@@ -43,3 +43,22 @@ class ScriptedObject(Object):
 class Character(ScriptedObject):
     '''Players' characters.'''
     speed = me.FloatField(default=5)
+
+class Message(me.Document):
+    '''A message said and displayed as if it were in world.
+    Used only for zone-local messages.'''
+    sent = me.DateTimeField(default=datetime.datetime.now)
+    sender = me.StringField(default="")
+    body = me.StringField(default="")
+    loc = me.EmbeddedDocumentField(IntVector)
+    player_generated = me.BooleanField(default=False)
+
+    meta = {'indexes': ['sent',
+                        'loc',
+                        ]}
+
+class PrivateMessage(Message):
+    '''A message from and to a specific thing.'''
+    recipient = me.StringField(default="")
+    meta = {'indexes': ['recipient',
+                        ]}

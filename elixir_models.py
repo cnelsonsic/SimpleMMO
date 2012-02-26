@@ -22,10 +22,12 @@
 
 from elixir import Entity, Field
 from elixir import OneToMany, ManyToOne
-from elixir import UnicodeText, Integer
+from elixir import UnicodeText, Integer, DateTime
 from elixir import using_options
 from elixir import metadata, setup_all, create_all
 from elixir import session
+
+import datetime
 
 metadata.bind = "sqlite:///simplemmo.sqlite"
 metadata.bind.echo = True
@@ -63,6 +65,16 @@ class Zone(Entity):
 
     zoneid = Field(UnicodeText, unique=True, primary_key=True)
     port = Field(Integer, unique=True)
+
+class Message(Entity):
+    '''A text message from a player, for cross-zone messaging.'''
+    using_options(tablename="message")
+
+    date_sent = Field(DateTime, default=datetime.datetime.now)
+    sender = Field(UnicodeText, required=True)
+    recipient = Field(UnicodeText)
+    channel = Field(Integer, unique=True)
+    body = Field(UnicodeText, default='')
 
 
 setup_all()
