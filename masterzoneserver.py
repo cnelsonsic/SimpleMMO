@@ -50,7 +50,7 @@ for port in [z[0] for z in session.query(Zone.port).all()]:
     except(requests.ConnectionError):
         # Server is down, remove it from the zones table.
         Zone.query.filter_by(port=port).delete()
-        session.commit()
+    session.commit()
 
 class ZoneHandler(BaseHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
@@ -60,7 +60,11 @@ class ZoneHandler(BaseHandler):
     def get(self, zoneid):
         self.cleanup()
         # Check that the authed user owns that zoneid in the database.
-        self.write(self.get_url(zoneid))
+        try:
+            self.write(self.get_url(zoneid))
+        except UserWarning, exc:
+            if "timed out." in exc:
+                raise tornado.web.HTTPError(504, exc)
 
     def get_url(self, zoneid):
         '''Gets the zone URL from the database based on its id.
@@ -104,11 +108,12 @@ class ZoneHandler(BaseHandler):
 
             time.sleep(.1)
             if time.time() > starttime+ZONESTARTUPTIME:
-                raise UserWarning("Launching zone %s timed out.")
+                raise UserWarning("Launching zone %s timed out." % serverurl)
 
         print "Starting zone %s (%s) took %f seconds and %d requests." % (pname, serverurl, time.time()-starttime, numrequests)
 
         # If successful, write our URL to the database and return it
+        # TODO: Store useful information in the database.
         return serverurl
 
     def cleanup(self):
