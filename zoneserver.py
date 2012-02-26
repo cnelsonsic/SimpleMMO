@@ -79,7 +79,7 @@ from importlib import import_module
 # Import the zone's init script
 zonemodule = import_module('games.zones.'+zonename)
 # Initialize the zone
-zonemodule.Zone()
+zonescript = zonemodule.Zone()
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''

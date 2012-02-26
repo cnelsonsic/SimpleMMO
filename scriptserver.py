@@ -24,17 +24,17 @@ A server that runs scripts for all the objects in a zone.
 This should be started by the ZoneServer.
 '''
 
-import threading
-from threading import Timer
+import time
 
-import sched, time
-s = sched.scheduler(time.time, time.sleep)
+import mongoengine as me
 
-from settings import CLIENT_UPDATE_FREQ
+from mongoengine_models import ScriptedObject, Message
+from games.objects.basescript import Script
+
+from settings import CLIENT_UPDATE_FREQ, MAX_ZONE_OBJECT_MESSAGE_COUNT
 
 from basetickserver import BaseTickServer
 
-import mongoengine as me
 
 class ZoneScriptRunner(BaseTickServer):
     '''This is a class that holds all sorts of methods for running scripts for
@@ -54,38 +54,63 @@ class ZoneScriptRunner(BaseTickServer):
                 # Mongo's not up yet. Give it time.
                 time.sleep(.1)
 
-        self.scriptnames = []
+        self.load_scripts()
+
+    def load_scripts(self):
+        '''(Re)Load scripts for objects in this zone.'''
         self.scripts = {}
 
         # Query DB for a list of all objects' script names,
         #   ordered according to proximity to players
-        for o in ScriptedObject.objects(scripts__exists):
+        for o in ScriptedObject.objects(scripts__exists=True):
+            print "Scripted Object:", o.name
             # Store list of script names in self
-#             self.scriptnames.extend(o.scripts)
 
             # For each script name in the list:
             for script in o.scripts:
-                self.scriptnames[script] = []
+                print "Importing %s" % script
+                if script not in self.scripts:
+                    self.scripts[script] = []
+
                 # Import those by name via __import__
-                for c in dir(__import__(script)):
-                    c()
-                    # For each class object in each one's dir()
-                    # Instantiate that class.
-                    # Store object instance in a dict like {scriptname: classinstance}
+                scriptclass = script.split('.')[-1]
+                module = __import__(script, globals(), locals(), [scriptclass], -1)
+                # For each entry in the script's dir()
+                for key in dir(module):
+                    C = getattr(module, key)
+
+                    try:
+                        if not issubclass(C, Script):
+                            # If it isn't a subclass of Script, continue.
+                            continue
+                    except TypeError:
+                        # If C isn't a class at all, continue.
+                        continue
+
+                    # No sense in instantiating the default Script instance.
+                    if C != Script:
+                        # Store object instance in a list.
+                        self.scripts[script].append(C(mongo_engine_object=o))
 
 
     def tick(self):
         '''Iterate through all known scripts and call their tick method.'''
         # Tick all the things
-        for script in self.scriptnames:
-            # TODO: Pass some locals or somesuch so that they can query the db
-            self.scripts[script].tick()
+        print time.time()
+        for scriptname, scripts in self.scripts.items():
+            for script in scripts:
+                # TODO: Pass some locals or somesuch so that they can query the db
+                script.tick()
 
+        # Clean up mongodb's messages by deleting all but the most recent 100 non-player messages
+        for m in Message.objects(player_generated=False).order_by('-sent')[MAX_ZONE_OBJECT_MESSAGE_COUNT:]:
+            print "Deleting message from %s" % m.sent.time()
+            m.delete()
 
     def start(self):
         print "Running ZoneScript Server."
         super(ZoneScriptRunner, self).start()
 
 if __name__ == "__main__":
-    zsr = ZoneScriptRunner()
+    zsr = ZoneScriptRunner('playerinstance-defaultzone-None')
     zsr.start()
