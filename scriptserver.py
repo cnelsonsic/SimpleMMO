@@ -35,7 +35,6 @@ from settings import CLIENT_UPDATE_FREQ, MAX_ZONE_OBJECT_MESSAGE_COUNT
 
 from basetickserver import BaseTickServer
 
-
 class ZoneScriptRunner(BaseTickServer):
     '''This is a class that holds all sorts of methods for running scripts for
     a zone. It does not talk to the HTTP handler(s) directly, but instead uses
@@ -53,6 +52,8 @@ class ZoneScriptRunner(BaseTickServer):
             except(me.connection.ConnectionError):
                 # Mongo's not up yet. Give it time.
                 time.sleep(.1)
+
+        print "Started with data for zone: %s" % zoneid
 
         self.load_scripts()
 
@@ -112,5 +113,7 @@ class ZoneScriptRunner(BaseTickServer):
         super(ZoneScriptRunner, self).start()
 
 if __name__ == "__main__":
-    zsr = ZoneScriptRunner('playerinstance-defaultzone-None')
+    import sys
+    zoneid = sys.argv[1] if len(sys.argv) > 1 else "playerinstance-defaultzone-None"
+    zsr = ZoneScriptRunner(zoneid)
     zsr.start()
