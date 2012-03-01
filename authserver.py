@@ -31,7 +31,7 @@ import json
 
 import tornado
 
-from settings import AUTHSERVERPORT, ADMINISTRATORS
+import settings
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
@@ -65,7 +65,7 @@ class AuthHandler(BaseHandler):
     def set_admin(self, user):
         # Look up username in admins list in database
         # if present, set secure cookie for admin
-        if user in ADMINISTRATORS:
+        if user in settings.ADMINISTRATORS:
             self.set_secure_cookie("admin", 'true')
         else:
             self.clear_cookie("admin")
@@ -101,7 +101,13 @@ if __name__ == "__main__":
     handlers.append((r"/characters", CharacterHandler))
 
     server = BaseServer(handlers)
-    server.listen(AUTHSERVERPORT)
+    server.listen(settings.AUTHSERVERPORT)
+
+    from elixir import session
+    user = User.query.filter_by(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD).first()
+    if not user:
+        User(username="Username", password="Password")
+        session.commit()
 
     print "Starting up Authserver..."
     server.start()
