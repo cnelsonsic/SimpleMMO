@@ -10,7 +10,7 @@ import sys
 sys.path.append(".")
 
 from authserver import *
-from settings import COOKIE_SECRET
+import settings
 
 from elixir import session
 from elixir_models import metadata, setup_all, create_all
@@ -38,12 +38,12 @@ class TestPingHandler(AsyncHTTPTestCase):
 
 class TestAuthHandler(AsyncHTTPTestCase):
     def get_app(self):
-        return Application([('/', AuthHandler)], cookie_secret=COOKIE_SECRET)
+        return Application([('/', AuthHandler)], cookie_secret=settings.COOKIE_SECRET)
 
     def setUp(self):
         super(TestAuthHandler, self).setUp()
         set_up_db()
-        app = Application([('/', AuthHandler)], cookie_secret=COOKIE_SECRET)
+        app = Application([('/', AuthHandler)], cookie_secret=settings.COOKIE_SECRET)
         req = Mock()
         req.cookies = {}
         self.auth_handler = AuthHandler(app, req)
@@ -69,7 +69,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         for cookie in self.auth_handler._new_cookies:
             if name in cookie.keys():
                 cookie_value = cookie[name].value
-                result = decode_signed_value(COOKIE_SECRET, name, cookie_value)
+                result = decode_signed_value(settings.COOKIE_SECRET, name, cookie_value)
                 return result
 
     def decode_cookies(self, response):
@@ -84,7 +84,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
             if len(s) < 2: continue
             name = s[0]
             value = s[1]
-            result[name] = decode_signed_value(COOKIE_SECRET, name, value.strip('"'))
+            result[name] = decode_signed_value(settings.COOKIE_SECRET, name, value.strip('"'))
         return result
 
     def test_authenticate(self):
@@ -114,7 +114,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         self.assertEqual(expected, result)
 
     def test_set_admin(self):
-        for user in ADMINISTRATORS:
+        for user in settings.ADMINISTRATORS:
             self.auth_handler.set_admin(user)
 
             # Check for cookies
@@ -183,7 +183,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         self.assertEqual(401, response.code)
 
     def test_post_admin(self):
-        for username in ADMINISTRATORS:
+        for username in settings.ADMINISTRATORS:
             # Setup
             password = "goodpass"
             self.add_user(username, password)
