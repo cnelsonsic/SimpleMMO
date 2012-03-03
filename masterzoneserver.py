@@ -81,7 +81,7 @@ class ZoneHandler(BaseHandler):
 
         # Try to start a zone server
         pname = ''.join((instance_type, name, owner))
-        from startzone import start_zone
+        from start_supervisord_process import start_zone
         try:
             serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
         except(UserWarning), exc:
