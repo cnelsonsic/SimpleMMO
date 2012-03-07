@@ -32,11 +32,12 @@ import datetime
 import requests
 
 from settings import *
+from settings import DEFAULT_USERNAME, DEFAULT_PASSWORD
 
 # Some settings:
-USERNAME = "user"
+USERNAME = DEFAULT_USERNAME
 ADMINUSERNAME = "admin"
-PASSWORD = "pass"
+PASSWORD = DEFAULT_PASSWORD
 DEBUG = True
 
 # What hostname are the servers on
@@ -90,6 +91,25 @@ def retry(func, *args, **kwargs):
             raise requests.exceptions.Timeout("Gave up after %d seconds." % int(CLIENT_TIMEOUT))
     return True
 
+class InvalidResponse(Exception):
+    def __init__(self, status_code, content):
+        self.status_code = status_code
+        self.content = content
+
+    def __str__(self):
+        return "%d: %s" % (self.status_code, self.content)
+
+def json_or_exception(response):
+    '''Convert an HTTPResponse to JSON, if its status is 200 OK.
+    Otherwise, raise an exception.'''
+    if response.status_code == 200:
+        try:
+            return json.loads(response.content)
+        except ValueError:
+            return response.content
+    else:
+        raise InvalidResponse(response.status_code, response.content)
+
 # Ping main server to make sure it's up, and really an authserver
 def ping_authserver():
     r = requests.get(''.join((AUTHSERVER, "/ping")))
@@ -105,23 +125,16 @@ def ping_authserver():
 def login(username, password):
     data = {"username": username, "password": password}
     r = requests.post(''.join((AUTHSERVER, "/login")), data=data, cookies=COOKIES)
-    content = r.content
-
+    content = json_or_exception(r)
     COOKIES.update(r.cookies)
-
-    if r.status_code == 200:
-        return True
-    else:
-        return r
+    return content
 
 # Ask authserver for list of characters associated with this account
 # authserver returns a list of characters
 def get_characters():
     r = requests.get(''.join((AUTHSERVER, "/characters")), cookies=COOKIES)
-    if r.status_code == 200:
-        return json.loads(r.content)
-    else:
-        return r
+    content = json_or_exception(r)
+    return content
 
 # We could also query any details about the character like inventory 
 #   or money or current stats at this point
@@ -133,20 +146,17 @@ def get_zone(charname=None):
         charname = CURRENTCHAR
 
     r = requests.get(''.join((CHARSERVER, '/', charname, '/zone')), )
-    if r.status_code == 200:
-        return json.loads(r.content).get('zone')
-    else:
-        return r
+    content = json_or_exception(r)
+    return content['zone']
 
 # We then send a request to the master zone server for the url to the given zone
 # If it's online already, send us the URL
 # If it's not online, spin one up and send it when ready.
 def get_zoneserver(zone):
     r = requests.get(''.join((ZONESERVER, '/', zone)), cookies=COOKIES)
-    if r.status_code == 200:
-        return r.content
-    else:
-        return r
+    print r.status_code, r.content
+    content = json_or_exception(r)
+    return content
 
 # Request all objects in the zone. (Terrain, props, players are all objects)
 # Bulk of loading screen goes here while we download object info.
@@ -155,20 +165,16 @@ def get_all_objects(zone=None):
         zone = CURRENTZONE
         print zone
     r = requests.get(''.join((zone, '/objects')), cookies=COOKIES)
-    if r.status_code == 200:
-        return json.loads(r.content)
-    else:
-        return r
+    content = json_or_exception(r)
+    return content
 
 def get_objects_since(since, zone=None):
     if zone is None:
         zone = CURRENTZONE
     data = {"since": since.strftime(DATETIME_FORMAT)}
     r = requests.get(''.join((zone, '/objects')), cookies=COOKIES, params=data)
-    if r.status_code == 200:
-        return json.loads(r.content)
-    else:
-        return r
+    content = json_or_exception(r)
+    return content
 
 # We send a request to the zoneserver to mark our character as online/active
 def set_status(zone=None, character=None, status='online'):
@@ -179,10 +185,8 @@ def set_status(zone=None, character=None, status='online'):
 
     data = {'character': character, 'status': status}
     r = requests.post(''.join((zone, '/setstatus')), cookies=COOKIES, data=data)
-    if r.status_code == 200:
-        return True
-    else:
-        return r
+    content = json_or_exception(r)
+    return content
 
 # Send an initial movement message to the zoneserver's movement handler to open the connection
 def send_movement_ws(zone, character, xmod=0, ymod=0):
@@ -213,10 +217,8 @@ def send_movement(zone=None, character=None, xmod=0, ymod=0, zmod=0):
 
     data = {'character': character, 'x': xmod, 'y': ymod, 'z': zmod}
     r = requests.post(''.join((zone, '/movement')), cookies=COOKIES, data=data)
-    if r.status_code == 200:
-        return True
-    else:
-        return r
+    content = json_or_exception(r)
+    return content
 
 ### Repetitive ###
 # Every second or so, request objects that have changed or been added since the last request.
@@ -238,7 +240,7 @@ if __name__ == "__main__":
     global CURRENTCHAR
     CURRENTCHAR = chars[0]
     import random
-    CURRENTCHAR = ''.join([random.choice(list("qwertyuiopasdfghjklzxcvbnm")) for c in range(10)]).title()
+#     CURRENTCHAR = ''.join([random.choice(list("qwertyuiopasdfghjklzxcvbnm")) for c in range(10)]).title()
 
     zone = get_zone()
     print "Got %r as zone." % zone
