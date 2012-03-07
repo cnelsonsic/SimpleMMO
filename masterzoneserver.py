@@ -81,11 +81,11 @@ class ZoneHandler(BaseHandler):
 
         # See if it's already up:
         zoneid = '-'.join((instance_type, name, owner))
-        zones = session.query(Zone.port).filter_by(zoneid=zoneid).all()
+        ports = session.query(Zone.port).filter_by(zoneid=zoneid).all()
         from settings import PROTOCOL, HOSTNAME
         serverurl = None
-        for zone in zones:
-            serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
+        for port in ports:
+            serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port.port)
             try:
                 status = requests.get(serverurl).status_code
                 if status == 200:
