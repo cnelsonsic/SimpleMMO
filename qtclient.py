@@ -332,6 +332,11 @@ class WorldViewer(QWidget):
     def _update_objects(self, objectslist):
         print "Updated %d objects." % len(objectslist)
         for obj in objectslist:
+
+            # Filter out any objects that are obviously not wanting to be shown.
+            if abs(obj['loc']['x']) == sys.maxint:
+                continue
+
             obj_id = obj['_id']['$oid']
             self.world_objects.update({obj_id: obj})
             if obj_id not in self.world_object_widgets:
@@ -348,7 +353,7 @@ class WorldViewer(QWidget):
             # Update our view if the name is the same as our character.
             if obj['name'] == self.charname:
                 self.view.centerOn(objwidget)
-                self.view.ensureVisible(objwidget, xmargin=300, ymargin=300)
+                self.view.ensureVisible(objwidget)
 
     def update_objects(self):
         '''Gets an upated list of objects from the zone and stores them locally.'''
@@ -376,6 +381,9 @@ class AdminPanel(WorldViewer):
         super(AdminPanel, self).__init__(*args, **kwargs)
 
         self.view.scale(1/5.0, 1/5.0)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.view.fitInView(self.view.sceneRect())
 
         # Initialize some buttons to do administrative things:
         #   Turn on noclip
