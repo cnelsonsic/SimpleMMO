@@ -84,8 +84,9 @@ class LoginForm(QDialog):
         self.login_button.setIcon(self.status_icon)
 
     def login(self):
+        # TODO: This could be an exception if login failed. Catch it.
         login_result = client.login(self.username.text(), self.password.text())
-        if login_result is True:
+        if login_result:
             # We logged in, so show the character select dialog
             global charselect
             charselect = CharacterSelect()
@@ -152,11 +153,13 @@ class WorldViewerDebug(QDialog):
 
         self.worldviewer = worldviewer
 
-        self.objects = QTextEdit("<pre>Loading...</pre>")
-        self.objects.setReadOnly(True)
+        self.objects_tree = QTreeWidget()
+        self.objects_tree.setColumnCount(2)
+        self.objects_tree.setHeaderLabels(["ID", "Name", "Location", "Resource", "Last Modified"])
+        self.objects_tree.setSortingEnabled(True)
 
         layout = QVBoxLayout()
-        for w in (self.objects,):
+        for w in (self.objects_tree,):
             layout.addWidget(w)
         self.setLayout(layout)
 
@@ -170,14 +173,36 @@ class WorldViewerDebug(QDialog):
         return QSize(geom.width()/2, geom.height())
 
     def show(self):
-        '''This is overridden to not allow this to be shown when running in 
+        '''This is overridden to not allow this to be shown when running in
         non-debug mode'''
         super(WorldViewerDebug, self).show()
         if not DEBUG:
             self.hide()
 
     def update(self):
-        self.objects.setText(pformat(self.worldviewer.world_objects))
+        items = []
+        for objid, obj in self.worldviewer.world_objects.items():
+            name = obj['name']
+            locx = obj['loc']['x']
+            locy = obj['loc']['y']
+            locz = obj['loc']['z']
+            resource = obj['resource']
+            last_modified = datetime.datetime.fromtimestamp(int(str(obj['last_modified']['$date'])[:-3]))
+
+            row = self.objects_tree.findItems(objid, Qt.MatchExactly, column=0)
+            if row:
+                # Update it if it exists already
+                item = row[0]
+            if not row:
+                # If Item does not exist in the tree widget already, make a new one.
+                item = QTreeWidgetItem(self.objects_tree)
+                items.append(item)
+
+            for i, param in enumerate((objid, name, (locx, locy, locz), resource, last_modified)):
+                item.setText(i, str(param))
+
+        if items:
+            self.objects_tree.insertTopLevelItems(0, items)
 
 
 class WorldViewer(QWidget):
