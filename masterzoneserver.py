@@ -79,21 +79,38 @@ class ZoneHandler(BaseHandler):
         # Make sure the name exists
         # Make sure owner is real
 
-        # Try to start a zone server
-        pname = ''.join((instance_type, name, owner))
-        from start_supervisord_process import start_zone
-        try:
-            serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
-        except(UserWarning), exc:
-            if "Zone already exists in process list." in exc:
-                # Zone is already up
-                pass
-            else:
-                raise
+        # See if it's already up:
+        zoneid = '-'.join((instance_type, name, owner))
+        zones = session.query(Zone.port).filter_by(zoneid=zoneid).all()
+        from settings import PROTOCOL, HOSTNAME
+        serverurl = None
+        for zone in zones:
+            serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
+            try:
+                status = requests.get(serverurl).status_code
+                if status == 200:
+                    break
+            except requests.ConnectionError:
+                continue
+
+        # Server is not already up
+        if not serverurl:
+            # Try to start a zone server
+            from start_supervisord_process import start_zone
+            try:
+                serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
+                print "SERVER URL:", serverurl
+            except UserWarning, exc:
+                if "Zone already exists in process list." in exc:
+                    print exc
+                    # Zone is already up
+                    pass
+                else:
+                    raise
 
 
         # Wait for server to come up
-        # Or just query it on "/" every hundred ms or so.
+        # Just query it on "/" every hundred ms or so.
         import time
         starttime = time.time()
         status = 0
@@ -108,9 +125,9 @@ class ZoneHandler(BaseHandler):
 
             time.sleep(.1)
             if time.time() > starttime+ZONESTARTUPTIME:
-                raise UserWarning("Launching zone %s timed out." % serverurl)
+                raise tornado.web.HTTPError(504, "Launching zone %s timed out." % serverurl)
 
-        print "Starting zone %s (%s) took %f seconds and %d requests." % (pname, serverurl, time.time()-starttime, numrequests)
+        print "Starting zone %s (%s) took %f seconds and %d requests." % (zoneid, serverurl, time.time()-starttime, numrequests)
 
         # If successful, write our URL to the database and return it
         # TODO: Store useful information in the database.
