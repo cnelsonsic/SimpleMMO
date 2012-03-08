@@ -380,10 +380,15 @@ class AdminPanel(WorldViewer):
     def __init__(self, *args, **kwargs):
         super(AdminPanel, self).__init__(*args, **kwargs)
 
-        self.view.scale(1/5.0, 1/5.0)
-        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.view.fitInView(self.view.sceneRect())
+        self.setWindowTitle("Eye of God")
+        self.view.setRenderHint(QPainter.Antialiasing, True)
+        self.view.setRenderHint(QPainter.SmoothPixmapTransform, True)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.obj_update_timer = QTimer(self)
+        self.connect(self.obj_update_timer, SIGNAL("timeout()"), self.update)
+        self.obj_update_timer.start(CLIENT_UPDATE_FREQ)
 
         # Initialize some buttons to do administrative things:
         #   Turn on noclip
@@ -392,6 +397,9 @@ class AdminPanel(WorldViewer):
         #   Show a palette of objects in-world, sorted by last used or number of instances
         #   Yank the current object into the buffer
         #   Spawn the object in the buffer under currentpos
+
+    def update(self):
+        self.view.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
 
 
 # Create a Qt application
