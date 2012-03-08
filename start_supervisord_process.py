@@ -92,6 +92,10 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
         settings = {'command': command, 'autostart': str(True), 'autorestart': str(autorestart), 'redirect_stderr': str(True)}
         addtogroup = _add_process(s, processgroup, zoneid, settings, port)
 
+        # Start up a scriptserver:
+        settings['command'] = '/usr/bin/python scriptserver.py %s' % zoneid
+        zonescriptserver = _add_process(s, processgroup, zoneid+"-scriptserver", settings, 1)
+
         if addtogroup:
             from settings import PROTOCOL, HOSTNAME
             serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
