@@ -21,7 +21,7 @@
 
 '''ZoneScriptServer
 A server that runs scripts for all the objects in a zone.
-This should be started by the ZoneServer.
+This is started by the MasterZoneServer when its sibling ZoneServer is started.
 '''
 
 import time
