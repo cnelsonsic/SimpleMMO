@@ -22,7 +22,7 @@ class Object(me.Document):
     name = me.StringField(default="")
     resource = me.StringField(default="")
 
-    loc = me.EmbeddedDocumentField(IntVector)
+    loc = me.EmbeddedDocumentField(IntVector) # FIXME: Make this a floatvector.
     rot = me.EmbeddedDocumentField(FloatVector)
     scale = me.EmbeddedDocumentField(FloatVector)
     vel = me.EmbeddedDocumentField(FloatVector)
