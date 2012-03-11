@@ -155,7 +155,7 @@ class WorldViewerDebug(QDialog):
 
         self.objects_tree = QTreeWidget()
         self.objects_tree.setColumnCount(2)
-        self.objects_tree.setHeaderLabels(["ID", "Name", "Location", "Resource", "Last Modified"])
+        self.objects_tree.setHeaderLabels(["ID", "Name", "Location", "Resource", "Last Modified", "Dist to Player"])
         self.objects_tree.setSortingEnabled(True)
 
         layout = QVBoxLayout()
@@ -181,9 +181,19 @@ class WorldViewerDebug(QDialog):
 
     def update(self):
         items = []
+        playerx, playery = 0, 0
+        for objid, obj in self.worldviewer.world_objects.items():
+            if "Object.ScriptedObject.Character" in obj['_types']:
+                playerx = obj['loc']['x']
+                playery = obj['loc']['y']
+                break
+
         for objid, obj in self.worldviewer.world_objects.items():
             name = obj['name']
-            locx = obj['loc']['x']
+            try:
+                locx = obj['loc']['x']
+            except KeyError:
+                continue
             locy = obj['loc']['y']
             locz = obj['loc']['z']
             resource = obj['resource']
@@ -198,11 +208,18 @@ class WorldViewerDebug(QDialog):
                 item = QTreeWidgetItem(self.objects_tree)
                 items.append(item)
 
-            for i, param in enumerate((objid, name, (locx, locy, locz), resource, last_modified)):
+            for i, param in enumerate((objid, name, (locx, locy, locz), resource, last_modified, "%04d" % euclidian(locx, locy, playerx, playery))):
                 item.setText(i, str(param))
 
         if items:
             self.objects_tree.insertTopLevelItems(0, items)
+
+def manhattan(x1, y1, x2, y2):
+    return abs(x1-x2) + abs(y1-y2)
+
+def euclidian(x1, y1, x2, y2):
+    from math import sqrt
+    return sqrt(((x1-x2)**2) + ((y1-y2)**2))
 
 
 class WorldViewer(QWidget):
@@ -327,14 +344,14 @@ class WorldViewer(QWidget):
             y += 1
 
         client.send_movement(self.currentzone, self.charname, x, y, 0)
-        print x, y
 
     def _update_objects(self, objectslist):
-        print "Updated %d objects." % len(objectslist)
-        for obj in objectslist:
+        if len(objectslist) != 0:
+            print "Updated %d objects." % len(objectslist)
 
-            # Filter out any objects that are obviously not wanting to be shown.
-            if abs(obj['loc']['x']) == sys.maxint:
+        for obj in objectslist:
+            # Filter out any hidden objects
+            if "hidden" in obj.get('states'):
                 continue
 
             obj_id = obj['_id']['$oid']
@@ -345,10 +362,8 @@ class WorldViewer(QWidget):
                 self.world_object_widgets.update({obj_id: objwidget})
                 self.scene.addItem(objwidget)
             else:
-                # Find any differences between the objects, and adjust them on the WorldObject
                 objwidget = self.world_object_widgets[obj_id]
-                objwidget.setOffset(int(obj['loc']['x']), int(obj['loc']['y']))
-                print "Updated widget."
+                objwidget.setOffset(obj['loc']['x'], obj['loc']['y'])
 
             # Update our view if the name is the same as our character.
             if obj['name'] == self.charname:
