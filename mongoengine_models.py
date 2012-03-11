@@ -28,13 +28,14 @@ class Object(me.Document):
     vel = me.EmbeddedDocumentField(FloatVector)
 
     states = me.ListField(me.StringField())
-    active = me.BooleanField(default=True)
+    physical = me.BooleanField(default=True)
     last_modified = me.DateTimeField(default=datetime.datetime.now)
 
     meta = {'indexes': ['last_modified',
                         'loc.x', 'loc.y', 'loc.z',
                         'states',
-                        'active']}
+                        'physical',
+                        ]}
 
     def set_modified(self, date_time=None):
         if date_time is None:
