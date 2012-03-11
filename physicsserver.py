@@ -32,6 +32,7 @@ This should be started by the ZoneServer.
 '''
 
 from uuid import uuid4
+import datetime
 
 import mongoengine as me
 from mongoengine_models import Object
@@ -41,7 +42,7 @@ from pymunk import Vec2d
 ### Physics collision types
 COLLTYPE_BALL = 2
 
-from settings import CLIENT_UPDATE_FREQ
+from settings import CLIENT_UPDATE_FREQ, DATETIME_FORMAT
 
 from basetickserver import BaseTickServer
 
@@ -66,25 +67,24 @@ class PhysicsServer(BaseTickServer):
         # Set up a PyMunk scene for our simulation.
         self.space = pm.Space()
         self.space.gravity = Vec2d(0.0, 0.0)
-#         self.space.damping = 0.5
-#         self.space.idleSpeedThreshold = 1.0
-#         self.space.sleepTimeThreshold = 0.05
-        self.objects = [] # All the pymunk shapes in the scene.
+        self.space.damping = 0.5
+#        self.space.idleSpeedThreshold = 1.0
+#        self.space.sleepTimeThreshold = 0.05
+        self.objects = {}
 
-        # Query DB for a full list of all objects' physical "descriptions".
-        mass = 10
-        radius = 100
+        # Initialize our scene by grabbing all the objects since the beginning of time.
+        self.last_update = datetime.datetime.strptime('0001-01-01 00:00:00:000000', DATETIME_FORMAT)
+        self.update_scene()
+
+    def insert_space_object(self, me_obj, mass=10, radius=10):
         moment = pm.moment_for_circle(mass, 0, radius, (0,0))
-        for o in Object.objects(): # FIXME: Only get physical objects!
-            # Update our internal scene with it.
-            body = pm.Body(mass, moment)
-            body.position = o.loc['x'], o.loc['y']
-            shape = pm.Circle(body, radius, (0,0))
-            shape.friction = 0.7
-            shape.collision_type = COLLTYPE_BALL
-            self.space.add(body, shape)
-            body.me_obj = o
-            self.objects.append(body)
+        body = pm.Body(mass, moment)
+        body.position = me_obj.loc.x, me_obj.loc.y
+        shape = pm.Circle(body, radius, (0,0))
+        shape.friction = 0.7
+        shape.collision_type = COLLTYPE_BALL
+        self.space.add(body, shape)
+        self.objects.update({me_obj.id: {"body": body, "me_obj": me_obj, "shape": shape}})
 
     def tick(self):
         '''Get any updated objects in the scene since the last tick,
@@ -98,26 +98,36 @@ class PhysicsServer(BaseTickServer):
     def update_scene(self):
         '''Update the internal scene with any changes to the zone's objects.
         This is like get_objects() from the client, only directly grabbing from the server.'''
+        # Get all the objects since our last update.
+        for o in Object.objects(last_modified__gte=self.last_update, physical=True):
+            if o.id in self.objects:
+                # This object is already in our scene, let's update its position
+                # with what the database says its position is.
+                self.objects[o.id]['me_obj'] = o
+                self.objects[o.id]['body'].position = o.loc.x, o.loc.y
+            else:
+                # This object is not in our physics scene yet
+                self.insert_space_object(o)
+        self.last_update = datetime.datetime.now()
 
     def step(self):
         '''Step the scene simulation forward until we're satisfied.'''
         dt = 1.0/60.0
-        for shape in self.space.shapes:
-            if shape.body.is_sleeping:
-                continue
-            for x in range(100):
-                self.space.step(dt)
+        for x in range(1):
+            self.space.step(dt)
 
     def update_database(self):
         '''Send any changes we made to our internal scene to the database,
         so that any movement or bumping or jostling is persisted into the zone.'''
-#         from pprint import pprint
-#         pprint({o.me_obj.id:o.position for o in self.objects})
-        for o in self.objects:
-            x, y = o.position
-            o.me_obj.loc['x'] = x
-            o.me_obj.loc['y'] = y
-            o.me_obj.set_modified()
+        for _id, o in self.objects.items():
+            body = o['body']
+            me_obj = o['me_obj']
+            newx, newy = body.position
+            oldx, oldy = me_obj.loc.x, me_obj.loc.y
+            if newx != oldx or newy != oldy:
+                me_obj.loc.x = newx
+                me_obj.loc.y = newy
+                me_obj.set_modified()
 
     def start(self):
         print "Running PhysicsServer."
