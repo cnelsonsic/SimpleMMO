@@ -1,0 +1,5 @@
+
+group { "puppet":
+  ensure => "present",
+}
+
