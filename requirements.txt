@@ -6,5 +6,3 @@ mongoengine
 pymunk
 supervisor
 supervisor-twiddler
-
-PySide
