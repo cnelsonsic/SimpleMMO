@@ -55,6 +55,7 @@ class Character(Entity):
 
     name = Field(UnicodeText, unique=True, required=True)
     user = ManyToOne('User', required=True)
+    zones = OneToMany('Zone')
 
     def __repr__(self):
         return '<Character "%s" owned by "%s">' % (self.name, self.user.username)
