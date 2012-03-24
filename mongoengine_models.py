@@ -59,12 +59,14 @@ class Message(me.Document):
     loc = me.EmbeddedDocumentField(IntVector)
     player_generated = me.BooleanField(default=False)
 
-    meta = {'indexes': ['sent',
-                        'loc',
-                        ]}
+    meta = {'indexes': ['sent', 'loc'],
+            'allow_inheritance': True,
+            }
 
 class PrivateMessage(Message):
     '''A message from and to a specific thing.'''
     recipient = me.StringField(default="")
-    meta = {'indexes': ['recipient',
-                        ]}
+    meta = {'indexes': ['recipient'],
+            'allow_inheritance': True,
+            }
+
