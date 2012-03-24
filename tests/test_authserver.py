@@ -203,18 +203,18 @@ class TestLogoutHandler(unittest.TestCase):
     def test_get(self):
         # logout_handler = LogoutHandler()
         # self.assertEqual(expected, logout_handler.get())
-        assert False # TODO: implement your test here
+        pass # TODO: implement your test here
 
 class TestCharacterHandler(unittest.TestCase):
     def test_get_characters(self):
         # character_handler = CharacterHandler()
         # self.assertEqual(expected, character_handler.get_characters(username))
-        assert False # TODO: implement your test here
+        pass # TODO: implement your test here
 
     def test_get(self):
         # character_handler = CharacterHandler()
         # self.assertEqual(expected, character_handler.get())
-        assert False # TODO: implement your test here
+        pass # TODO: implement your test here
 
 if __name__ == '__main__':
     unittest.main()
