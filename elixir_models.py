@@ -66,6 +66,7 @@ class Zone(Entity):
 
     zoneid = Field(UnicodeText, unique=True, primary_key=True)
     port = Field(Integer, unique=True)
+    character = ManyToOne('Character')
 
 class Message(Entity):
     '''A text message from a player, for cross-zone messaging.'''
