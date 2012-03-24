@@ -76,7 +76,7 @@ class Message(Entity):
     sender = Field(UnicodeText, required=True)
     recipient = Field(UnicodeText)
     channel = Field(Integer, unique=True)
-    body = Field(UnicodeText, default='')
+    body = Field(UnicodeText, default=u'')
 
 
 setup_all()
