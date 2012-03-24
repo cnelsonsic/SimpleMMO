@@ -9,7 +9,7 @@ from mock import Mock
 import sys
 sys.path.append(".")
 
-from authserver import *
+from authserver import PingHandler, AuthHandler, LogoutHandler, CharacterHandler
 import settings
 
 from elixir import session
