@@ -34,8 +34,9 @@ class Object(me.Document):
     meta = {'indexes': ['last_modified',
                         'loc.x', 'loc.y', 'loc.z',
                         'states',
-                        'physical',
-                        ]}
+                        'physical'],
+            'allow_inheritance': True,
+            }
 
     def set_modified(self, date_time=None):
         if date_time is None:
@@ -45,10 +46,12 @@ class Object(me.Document):
 
 class ScriptedObject(Object):
     scripts = me.ListField(me.StringField())
+    meta = {'allow_inheritance': True}
 
 class Character(ScriptedObject):
     '''Players' characters.'''
     speed = me.FloatField(default=5)
+    meta = {'allow_inheritance': True}
 
 class Message(me.Document):
     '''A message said and displayed as if it were in world.
