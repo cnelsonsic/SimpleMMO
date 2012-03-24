@@ -29,8 +29,6 @@ For example, getting which zone a character is currently in.
 
 import json
 
-import tornado
-
 from settings import CHARSERVERPORT
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
