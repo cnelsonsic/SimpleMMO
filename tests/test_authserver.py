@@ -36,6 +36,35 @@ class TestPingHandler(AsyncHTTPTestCase):
         expected = 'pong'
         self.assertEqual(expected, response)
 
+# Some helpers for authentication:
+def add_user(username, password):
+    '''Add a user to the database.
+    If it already exists, delete it first.
+    Also mark it for cleanup later.'''
+    delete_user(username, password)
+    User(username=username, password=password)
+    session.commit()
+
+def delete_user(username, password):
+    '''Delete a user from the database.'''
+    User.query.filter_by(username=username, password=password).delete()
+    session.commit()
+
+def decode_cookies(response):
+    '''Takes an HTTPResponse as the response.'''
+    chunks = []
+    for chunk in response.headers['Set-Cookie'].split(','):
+        chunks.extend(chunk.split(';'))
+
+    result = {}
+    for chunk in chunks:
+        s = chunk.split('=', 1)
+        if len(s) < 2: continue
+        name = s[0]
+        value = s[1]
+        result[name] = decode_signed_value(settings.COOKIE_SECRET, name, value.strip('"'))
+    return result
+
 class TestAuthHandler(AsyncHTTPTestCase):
     def get_app(self):
         return Application([('/', AuthHandler)], cookie_secret=settings.COOKIE_SECRET)
@@ -51,19 +80,6 @@ class TestAuthHandler(AsyncHTTPTestCase):
     def tearDown(self):
         super(TestAuthHandler, self).tearDown()
 
-    def add_user(self, username, password):
-        '''Add a user to the database.
-        If it already exists, delete it first.
-        Also mark it for cleanup later.'''
-        self.delete_user(username, password)
-        User(username=username, password=password)
-        session.commit()
-
-    def delete_user(self, username, password):
-        '''Delete a user from the database.'''
-        User.query.filter_by(username=username, password=password).delete()
-        session.commit()
-
     def get_secure_cookie(self, name):
         '''A helper method to get a cookie that was set securely.'''
         for cookie in self.auth_handler._new_cookies:
@@ -72,26 +88,11 @@ class TestAuthHandler(AsyncHTTPTestCase):
                 result = decode_signed_value(settings.COOKIE_SECRET, name, cookie_value)
                 return result
 
-    def decode_cookies(self, response):
-        '''Takes an HTTPResponse as the response.'''
-        chunks = []
-        for chunk in response.headers['Set-Cookie'].split(','):
-            chunks.extend(chunk.split(';'))
-
-        result = {}
-        for chunk in chunks:
-            s = chunk.split('=', 1)
-            if len(s) < 2: continue
-            name = s[0]
-            value = s[1]
-            result[name] = decode_signed_value(settings.COOKIE_SECRET, name, value.strip('"'))
-        return result
-
     def test_authenticate(self):
         # Setup
         username = "gooduser"
         password = "goodpass"
-        self.add_user(username, password)
+        add_user(username, password)
 
         # Test
         expected = True
@@ -106,7 +107,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         username = "gooduser"
         good_password = "goodpass"
         password = "badpassword"
-        self.add_user(username, good_password)
+        add_user(username, good_password)
 
         # Test
         expected = False
@@ -155,7 +156,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         # Setup
         username = "gooduser"
         password = "goodpass"
-        self.add_user(username, password)
+        add_user(username, password)
 
         # Result: Sets user cookie, result will be 'Login Successful'
         qstring = "username=%s&password=%s" % (username, password)
@@ -164,7 +165,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         self.assertEqual(expected, response.body)
 
         # Check for cookies
-        result = self.decode_cookies(response)
+        result = decode_cookies(response)
         self.assertEqual(None, result['admin'])
         self.assertEqual(username, result['user'])
 
@@ -173,7 +174,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         username = "gooduser"
         goodpass = "goodpass"
         password = "badpass"
-        self.add_user(username, goodpass)
+        add_user(username, goodpass)
 
         # Test
         qstring = "username=%s&password=%s" % (username, password)
@@ -186,7 +187,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
         for username in settings.ADMINISTRATORS:
             # Setup
             password = "goodpass"
-            self.add_user(username, password)
+            add_user(username, password)
 
             # Result: Sets user cookie, result will be 'Login Successful'
             qstring = "username=%s&password=%s" % (username, password)
@@ -195,7 +196,7 @@ class TestAuthHandler(AsyncHTTPTestCase):
             self.assertEqual(expected, response.body)
 
             # Check for cookies
-            result = self.decode_cookies(response)
+            result = decode_cookies(response)
             self.assertEqual('true', result['admin'])
             self.assertEqual(username, result['user'])
 
