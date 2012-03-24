@@ -72,7 +72,7 @@ while True:
         time.sleep(.1)
         print "sleeping"
 
-from mongoengine_models import *
+from mongoengine_models import Character, Object, IntVector
 
 print "Loading %s's data." % zonename
 from importlib import import_module
