@@ -65,6 +65,16 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         self.objects_handler = ObjectsHandler(self.app, self.req)
         self.auth_handler = AuthHandler(self.app, self.req)
 
+        zonename = "defaultzone"
+        zoneid = "playerinstance-%s-username" % zonename
+        import mongoengine as me
+        me.connect(zoneid)
+
+        # Initialize the zone's setup things.
+        from importlib import import_module
+        zonemodule = import_module('games.zones.'+zonename)
+        zonemodule.Zone()
+
     def test_get(self):
         '''By default, we should get some objects back.'''
         #Setup:

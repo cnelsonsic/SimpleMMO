@@ -62,24 +62,7 @@ owner = options.owner
 zoneid = '-'.join((instancetype, zonename, owner))
 print "ZoneID: %s" % zoneid
 
-# Make sure mongodb is up
-while True:
-    try:
-        me.connect(zoneid)
-        break
-    except(me.connection.ConnectionError):
-        # Mongo's not up yet. Give it time.
-        time.sleep(.1)
-        print "sleeping"
-
 from mongoengine_models import Character, Object, IntVector
-
-print "Loading %s's data." % zonename
-from importlib import import_module
-# Import the zone's init script
-zonemodule = import_module('games.zones.'+zonename)
-# Initialize the zone
-zonescript = zonemodule.Zone()
 
 class ObjectsHandler(BaseHandler):
     '''ObjectsHandler returns a list of objects and their data.'''
@@ -238,6 +221,23 @@ class AdminHandler(BaseHandler):
 
 
 def main(port=1300):
+    # Make sure mongodb is up
+    while True:
+        try:
+            me.connect(zoneid)
+            break
+        except(me.connection.ConnectionError):
+            # Mongo's not up yet. Give it time.
+            time.sleep(.1)
+            print "sleeping"
+
+    print "Loading %s's data." % zonename
+    from importlib import import_module
+    # Import the zone's init script
+    zonemodule = import_module('games.zones.'+zonename)
+    # Initialize the zone
+    zonescript = zonemodule.Zone()
+
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/objects", ObjectsHandler))
