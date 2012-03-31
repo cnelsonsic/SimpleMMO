@@ -23,7 +23,14 @@ import unittest
 from tornado.web import Application
 from tornado.testing import AsyncHTTPTestCase
 
+import os
+import shutil
+import time
+import subprocess
+import datetime
+
 import json
+import mock
 from mock import Mock
 
 import sys
@@ -32,7 +39,8 @@ sys.path.append(".")
 from elixir_models import metadata, setup_all, create_all
 
 import settings
-from zoneserver import ObjectsHandler
+import zoneserver
+ObjectsHandler = zoneserver.ObjectsHandler
 from authserver import AuthHandler
 
 def set_up_db():
@@ -65,19 +73,26 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         self.objects_handler = ObjectsHandler(self.app, self.req)
         self.auth_handler = AuthHandler(self.app, self.req)
 
-        zonename = "defaultzone"
-        zoneid = "playerinstance-%s-username" % zonename
-        import mongoengine as me
-        me.connect(zoneid)
+        self.zonename = "defaultzone"
+        self.zoneid = "playerinstance-%s-username" % self.zonename
+
+    def setup_mongo(self):
+        try:
+            me.connect(self.zoneid)
+        except me.ConnectionError:
+            self.skipTest("MongoDB server not running.")
 
         # Initialize the zone's setup things.
         from importlib import import_module
-        zonemodule = import_module('games.zones.'+zonename)
+        zonemodule = import_module('games.zones.'+self.zonename)
         zonemodule.Zone()
 
-    def test_get(self):
-        '''By default, we should get some objects back.'''
-        #Setup:
+    def tearDown(self):
+        super(TestObjectsHandler, self).tearDown()
+
+    def sign_in(self):
+        '''Return a cookie that is suitable for authentication.'''
+        self.setup_mongo()
         from test_authserver import add_user
         username = "username"
         password = "password"
@@ -86,20 +101,43 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         authresponse = self.fetch('/login', method='POST', body=qstring)
         cookie = authresponse.headers['Set-Cookie']
 
+        return cookie
+
+    def test_head(self):
+        #Setup:
+        cookie = self.sign_in()
+
+        #Test
+        response = self.fetch('/objects', method='HEAD', headers={'Cookie':cookie})
+        result = response.headers
+        self.assertEqual(result['Cache-Control'], 'max-age=315360000')
+
+    def test_get(self):
+        '''By default, we should get some objects back.'''
+        #Setup:
+        cookie = self.sign_in()
+
         #Test
         response = self.fetch('/objects', method='GET', headers={'Cookie':cookie})
         result = json.loads(response.body)
         self.assertTrue(len(result) > 0)
 
     def test_get_objects(self):
-        # objects_handler = ObjectsHandler()
-        # self.assertEqual(expected, objects_handler.get_objects(since))
-        pass # TODO: implement your test here
+        # Mock out the database's list of objects
+        zoneserver.Object.objects = list()
 
-    def test_head(self):
-        # objects_handler = ObjectsHandler()
-        # self.assertEqual(expected, objects_handler.head())
-        pass # TODO: implement your test here
+        expected = []
+        result = self.objects_handler.get_objects()
+        self.assertEqual(expected, result)
+
+    def test_get_objects_with_since(self):
+        # Mock out the database's objects function.
+        zoneserver.Object.objects = Mock(return_value=[])
+
+        expected = []
+        result = self.objects_handler.get_objects(since=datetime.datetime.now())
+        self.assertEqual(expected, result)
+
 
 class TestCharStatusHandler(unittest.TestCase):
     def test_post(self):
