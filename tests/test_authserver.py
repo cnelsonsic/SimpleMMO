@@ -9,6 +9,7 @@ from mock import Mock
 import sys
 sys.path.append(".")
 
+import authserver
 from authserver import PingHandler, AuthHandler, LogoutHandler, CharacterHandler
 import settings
 
@@ -93,6 +94,13 @@ class TestAuthHandler(AsyncHTTPTestCase):
         username = "gooduser"
         password = "goodpass"
         add_user(username, password)
+
+        # Mock out the User object
+        first = Mock(return_value=Mock())
+        filter_by = Mock(return_value=first)
+        authserver.User = Mock()
+        authserver.User.query = Mock()
+        authserver.User.query.filter_by = filter_by
 
         # Test
         expected = True
