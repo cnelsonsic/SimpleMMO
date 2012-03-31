@@ -151,6 +151,11 @@ class TestCharStatusHandler(unittest.TestCase):
         # self.assertEqual(expected, char_status_handler.set_char_status(character, status))
         pass # TODO: implement your test here
 
+    def test_get_character(self):
+        # char_status_handler = CharStatusHandler()
+        # self.assertEqual(expected, char_status_handler.get_character(character))
+        pass # TODO: implement your test here
+
 class TestMovementHandler(unittest.TestCase):
     def test_post(self):
         # movement_handler = MovementHandler()
