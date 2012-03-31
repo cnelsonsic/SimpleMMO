@@ -111,29 +111,39 @@ class CharStatusHandler(BaseHandler):
             return self.set_char_status(character, status)
         return False
 
-    def set_char_status(self, character, status):
-        '''Sets a character's online status.'''
-        # Set the character's status in the zone's database.
+    def get_character(self, character):
+        '''Gets a character from the database by name.
+        Returns the Character object, or False if it isn't a
+        well-formed character object.'''
         try:
             charobj = Character.objects(name=character).first()
-            charobj.states
+            return charobj if charobj.states else False
         except(IndexError, AttributeError):
-            # No character named that.
+            return False
+
+    def set_char_status(self, character, status):
+        '''Sets a character's online status.'''
+
+        charobj = self.get_character(character)
+        if not charobj:
+            # No character in the db named that,
             # So create an object for the player and save it.
             charobj = Character()
             charobj.name = character
             charobj.states.append('player')
 
+        # does the character already have this status?
         if status not in charobj.states:
             charobj.states.append(status)
 
         # Remove any mutually exclusive character states except what was passed.
         for s in ('online', 'offline'):
-            if s != status:
-                if s in charobj.states:
-                    charobj.states.remove(s)
+            if status != s and s in charobj.states:
+                charobj.states.remove(s)
 
-        charobj.states = list(set(charobj.states)) # Remove any duplicates.
+        # Remove any duplicate states
+        charobj.states = list(set(charobj.states))
+
         charobj.save()
 
         return charobj
