@@ -77,6 +77,7 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         self.zoneid = "playerinstance-%s-username" % self.zonename
 
     def setup_mongo(self):
+        import mongoengine as me
         try:
             me.connect(self.zoneid)
         except me.ConnectionError:
