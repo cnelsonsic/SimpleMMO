@@ -50,18 +50,6 @@ from pymongo import json_util
 
 import mongoengine as me
 
-tornado.options.parse_command_line()
-
-# Instance Type
-instancetype = options.instancetype
-# Zone name
-zonename = options.zonename
-# Owner
-owner = options.owner
-
-zoneid = '-'.join((instancetype, zonename, owner))
-print "ZoneID: %s" % zoneid
-
 from mongoengine_models import Character, Object, IntVector
 
 class ObjectsHandler(BaseHandler):
@@ -121,16 +109,23 @@ class CharStatusHandler(BaseHandler):
         except(IndexError, AttributeError):
             return False
 
-    def set_char_status(self, character, status):
-        '''Sets a character's online status.'''
-
-        charobj = self.get_character(character)
+    def create_character(self, name):
+        '''Create an in-world character if one does not already exist.
+        If one exists, return it.'''
+        # TODO: This is pretty dumb and needs reorganized.
+        charobj = self.get_character(name)
         if not charobj:
             # No character in the db named that,
             # So create an object for the player and save it.
             charobj = Character()
-            charobj.name = character
+            charobj.name = name
             charobj.states.append('player')
+        return charobj
+
+    def set_char_status(self, character, status):
+        '''Sets a character's online status.'''
+
+        charobj = self.create_character(character)
 
         # does the character already have this status?
         if status not in charobj.states:
@@ -231,6 +226,18 @@ class AdminHandler(BaseHandler):
 
 
 def main(port=1300):
+    tornado.options.parse_command_line()
+
+    # Instance Type
+    instancetype = options.instancetype
+    # Zone name
+    zonename = options.zonename
+    # Owner
+    owner = options.owner
+
+    zoneid = '-'.join((instancetype, zonename, owner))
+    print "ZoneID: %s" % zoneid
+
     # Make sure mongodb is up
     while True:
         try:

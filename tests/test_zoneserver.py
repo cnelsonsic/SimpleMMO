@@ -23,15 +23,10 @@ import unittest
 from tornado.web import Application
 from tornado.testing import AsyncHTTPTestCase
 
-import os
-import shutil
-import time
-import subprocess
 import datetime
 
 import json
-import mock
-from mock import Mock
+from mock import Mock, patch
 
 import sys
 sys.path.append(".")
@@ -41,13 +36,13 @@ from elixir_models import metadata, setup_all, create_all
 import settings
 import zoneserver
 ObjectsHandler = zoneserver.ObjectsHandler
+CharStatusHandler = zoneserver.CharStatusHandler
 from authserver import AuthHandler
 
 def set_up_db():
     '''Connects to an in-memory SQLite database,
     with the purpose of emptying it and recreating it.'''
     metadata.bind = "sqlite:///:memory:"
-#     metadata.bind.echo = True
     setup_all()
     create_all()
 
@@ -67,14 +62,12 @@ class TestObjectsHandler(AsyncHTTPTestCase):
     def setUp(self):
         super(TestObjectsHandler, self).setUp()
         set_up_db()
-        self.app = self.get_app()
-        self.req = Mock()
-        self.req.cookies = {}
-        self.objects_handler = ObjectsHandler(self.app, self.req)
-        self.auth_handler = AuthHandler(self.app, self.req)
 
         self.zonename = "defaultzone"
         self.zoneid = "playerinstance-%s-username" % self.zonename
+
+    def tearDown(self):
+        super(TestObjectsHandler, self).tearDown()
 
     def setup_mongo(self):
         import mongoengine as me
@@ -87,9 +80,6 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         from importlib import import_module
         zonemodule = import_module('games.zones.'+self.zonename)
         zonemodule.Zone()
-
-    def tearDown(self):
-        super(TestObjectsHandler, self).tearDown()
 
     def sign_in(self):
         '''Return a cookie that is suitable for authentication.'''
@@ -123,6 +113,13 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         result = json.loads(response.body)
         self.assertTrue(len(result) > 0)
 
+
+class TestObjectsHandlerUnit(unittest.TestCase):
+    def setUp(self):
+        self.app = Application([('/', ObjectsHandler),])
+        self.req = Mock()
+        self.objects_handler = ObjectsHandler(self.app, self.req)
+
     def test_get_objects(self):
         # Mock out the database's list of objects
         zoneserver.Object.objects = list()
@@ -140,21 +137,114 @@ class TestObjectsHandler(AsyncHTTPTestCase):
         self.assertEqual(expected, result)
 
 
-class TestCharStatusHandler(unittest.TestCase):
-    def test_post(self):
-        # char_status_handler = CharStatusHandler()
-        # self.assertEqual(expected, char_status_handler.post())
-        pass # TODO: implement your test here
+class TestCharStatusHandler(AsyncHTTPTestCase):
+    def get_app(self):
+        return Application([('/login', AuthHandler), ('/setstatus', CharStatusHandler),], cookie_secret=settings.COOKIE_SECRET)
 
-    def test_set_char_status(self):
-        # char_status_handler = CharStatusHandler()
-        # self.assertEqual(expected, char_status_handler.set_char_status(character, status))
-        pass # TODO: implement your test here
+    def setUp(self):
+        super(TestCharStatusHandler, self).setUp()
+        set_up_db()
+        self.app = self.get_app()
+        self.req = Mock()
+        self.req.cookies = {}
+        self.objects_handler = ObjectsHandler(self.app, self.req)
+        self.auth_handler = AuthHandler(self.app, self.req)
+
+        self.zonename = "defaultzone"
+        self.zoneid = "playerinstance-%s-username" % self.zonename
+
+    def tearDown(self):
+        super(TestCharStatusHandler, self).tearDown()
+
+    def setup_mongo(self):
+        import mongoengine as me
+        try:
+            me.connect(self.zoneid)
+        except me.ConnectionError:
+            self.skipTest("MongoDB server not running.")
+
+        # Initialize the zone's setup things.
+        from importlib import import_module
+        zonemodule = import_module('games.zones.'+self.zonename)
+        zonemodule.Zone()
+
+    def sign_in(self):
+        '''Return a cookie that is suitable for authentication.'''
+        self.setup_mongo()
+        from test_authserver import add_user
+        username = "username"
+        password = "password"
+        add_user(username, password)
+        qstring = "username=%s&password=%s" % (username, password)
+        authresponse = self.fetch('/login', method='POST', body=qstring)
+        cookie = authresponse.headers['Set-Cookie']
+
+        return cookie
+
+    def test_post(self):
+        '''We should be able to set the character's online status.'''
+        # Setup:
+        cookie = self.sign_in()
+
+        data = {'character': 'character', 'status': 'online'}
+        response = self.fetch('/charstatus', method='POST', data=data, headers={'Cookie':cookie})
+        result = json.loads(response.body)
+        self.assertTrue(len(result) > 0)
+
+class TestCharStatusHandlerUnit(unittest.TestCase):
+    def setUp(self):
+        self.app = Application([('/', CharStatusHandler),])
+        self.req = Mock()
+        self.charstatus_handler = CharStatusHandler(self.app, self.req)
 
     def test_get_character(self):
-        # char_status_handler = CharStatusHandler()
-        # self.assertEqual(expected, char_status_handler.get_character(character))
-        pass # TODO: implement your test here
+        mock_char = Mock(spec=['states'])
+        MockCharacter = Mock()
+        MockCharacter.objects().first = Mock(return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.charstatus_handler.get_character("character")
+        self.assertEqual(mock_char, result)
+
+    def test_get_character_non_existent_empty_states(self):
+        mock_char = Mock()
+        mock_char.states = []
+        MockCharacter = Mock()
+        MockCharacter.objects().first = Mock(return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.charstatus_handler.get_character("character")
+
+        self.assertFalse(result)
+
+    def test_get_character_non_existent_no_states(self):
+        mock_char = Mock(name="char", spec=[])
+        MockCharacter = Mock(name="Character")
+        MockCharacter.objects().first = Mock(name="first", return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.charstatus_handler.get_character("character")
+
+        self.assertFalse(result)
+
+    def test_create_character(self):
+        mock_char = Mock(name="char", spec=[])
+        MockCharacter = Mock(name="Character")
+        MockCharacter.objects().first = Mock(name="first", return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            with patch.object(self.charstatus_handler, 'get_character', Mock()):
+                result = self.charstatus_handler.create_character("character")
+
+        self.assertTrue(result)
+
+    def test_set_char_status(self):
+        self.charstatus_handler.get_character = Mock()
+
+        expected = []
+#         result = self.charstatus_handler.set_char_status()
+#         self.assertEqual(expected, result)
+
 
 class TestMovementHandler(unittest.TestCase):
     def test_post(self):

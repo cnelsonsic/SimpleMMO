@@ -49,7 +49,7 @@ class ScriptedObject(Object):
     meta = {'allow_inheritance': True}
 
 class Character(ScriptedObject):
-    '''Players' characters.'''
+    '''Players' characters in-world representation.'''
     speed = me.FloatField(default=5)
     meta = {'allow_inheritance': True}
 

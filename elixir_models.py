@@ -29,8 +29,6 @@ from elixir import session
 
 import datetime
 
-metadata.bind = "sqlite:///simplemmo.sqlite"
-metadata.bind.echo = True
 
 class User(Entity):
     '''User contains details useful for authenticating a user for when they
@@ -79,10 +77,11 @@ class Message(Entity):
     body = Field(UnicodeText, default=u'')
 
 
-setup_all()
-create_all()
-
 if __name__ == "__main__":
+    metadata.bind = "sqlite:///simplemmo.sqlite"
+    metadata.bind.echo = True
+    setup_all()
+    create_all()
 
     u = User(username="user", password="pass")
     Character(name="Groxnor", user=u)
