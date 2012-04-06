@@ -228,23 +228,60 @@ class TestCharStatusHandlerUnit(unittest.TestCase):
         self.assertFalse(result)
 
     def test_create_character(self):
+        expected = Mock()
+
+        with patch.object(self.charstatus_handler, 'get_character', Mock(return_value=expected)):
+            result = self.charstatus_handler.create_character("character")
+
+        self.assertEqual(result, expected)
+
+    def test_create_character_with_new_charobj(self):
         mock_char = Mock(name="char", spec=[])
-        MockCharacter = Mock(name="Character")
-        MockCharacter.objects().first = Mock(name="first", return_value=mock_char)
+        mock_char.states = []
+        MockCharacter = Mock(name="Character", return_value=mock_char)
 
         with patch.object(zoneserver, 'Character', MockCharacter):
-            with patch.object(self.charstatus_handler, 'get_character', Mock()):
+            with patch.object(self.charstatus_handler, 'get_character', Mock(return_value=None)):
                 result = self.charstatus_handler.create_character("character")
 
-        self.assertTrue(result)
+        self.assertEqual(result, mock_char)
 
     def test_set_char_status(self):
-        self.charstatus_handler.get_character = Mock()
+        mock_char = Mock(name="char")
+        mock_char.states = ['alive']
 
-        expected = []
-#         result = self.charstatus_handler.set_char_status()
-#         self.assertEqual(expected, result)
+        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
+            result = self.charstatus_handler.set_char_status("character", 'alive')
 
+        self.assertEqual(result, mock_char)
+
+    def test_set_char_status_with_new_state(self):
+        mock_char = Mock(name="char")
+        mock_char.states = []
+
+        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
+            result = self.charstatus_handler.set_char_status("character", 'alive')
+
+        self.assertTrue('alive' in mock_char.states)
+
+    def test_set_char_status_mutually_exclusive(self):
+        mock_char = Mock(name="char")
+        mock_char.states = []
+
+        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
+            result = self.charstatus_handler.set_char_status("character", 'online')
+
+        self.assertTrue('online' in mock_char.states)
+
+    def test_set_char_status_mutually_exclusive_flip(self):
+        mock_char = Mock(name="char")
+        mock_char.states = ['online']
+
+        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
+            result = self.charstatus_handler.set_char_status("character", 'offline')
+
+        self.assertTrue('offline' in mock_char.states)
+        self.assertTrue('online' not in mock_char.states)
 
 class TestMovementHandler(unittest.TestCase):
     def test_post(self):

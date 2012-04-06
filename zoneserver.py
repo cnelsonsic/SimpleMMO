@@ -125,14 +125,18 @@ class CharStatusHandler(BaseHandler):
     def set_char_status(self, character, status):
         '''Sets a character's online status.'''
 
+        # Get or Create this character.
         charobj = self.create_character(character)
 
         # does the character already have this status?
         if status not in charobj.states:
+            # If not, we need to append it.
             charobj.states.append(status)
 
         # Remove any mutually exclusive character states except what was passed.
         for s in ('online', 'offline'):
+            # If the status we're trying to set is not the one we're currently on
+            # and the status we're iterating on is in the character states already.
             if status != s and s in charobj.states:
                 charobj.states.remove(s)
 
