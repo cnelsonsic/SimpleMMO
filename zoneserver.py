@@ -110,7 +110,7 @@ class CharacterController(object):
         if charobj:
             return charobj.owner == username
         else:
-            return False
+            return None
 
     def set_movement(self, character, xmod, ymod, zmod, user=None):
         charobj = self.create_character(character, owner=user)

@@ -247,7 +247,7 @@ class TestCharacterControllerIsOwner(unittest.TestCase):
         with patch.object(zoneserver, 'Character', MockCharacter):
             result = self.character_controller.is_owner(username, character)
 
-        self.assertFalse(result)
+        self.assertEqual(result, None)
 
 
 class TestObjectsHandler(AsyncHTTPTestCase):
