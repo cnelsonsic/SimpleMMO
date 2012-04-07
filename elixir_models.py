@@ -76,13 +76,14 @@ class Message(Entity):
     channel = Field(Integer, unique=True)
     body = Field(UnicodeText, default=u'')
 
-
-if __name__ == "__main__":
+def setup():
     metadata.bind = "sqlite:///simplemmo.sqlite"
     metadata.bind.echo = True
     setup_all()
     create_all()
 
+
+if __name__ == "__main__":
     u = User(username="user", password="pass")
     Character(name="Groxnor", user=u)
     Character(name="Bleeblebox", user=u)
