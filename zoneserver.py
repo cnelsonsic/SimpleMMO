@@ -212,10 +212,10 @@ class MovementHandler(BaseHandler):
         character = self.get_argument('character', '')
         user = self.get_secure_cookie('user')
         self.char_controller = CharacterController()
-        if not self.char_controller.is_owner(user, character):
-            self.set_status(403)
-            self.write("User %s does not own Character %s." % (user, character))
-            return False
+#         if not self.char_controller.is_owner(user, character):
+#             self.set_status(403)
+#             self.write("User %s does not own Character %s." % (user, character))
+#             return False
 
         xmod = int(self.get_argument('x', 0))
         ymod = int(self.get_argument('y', 0))
