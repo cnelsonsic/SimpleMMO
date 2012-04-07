@@ -3,11 +3,11 @@ import datetime
 
 from mongoengine_models import Message
 
-import os
 import re
 import random
 
 from settings import MAX_DICE_AMOUNT
+from mongoengine_models import Object
 
 def parse(s):
     result = re.search(r'^((?P<rolls>\d+)#)?(?P<dice>\d*)d(?P<sides>\d+)(?P<mod>[+-]\d+)?$', s)
@@ -47,7 +47,33 @@ class Script(object):
         Message(sender=self.me_obj.name, body=message, loc=self.me_obj.loc, player_generated=False).save()
         print "[%s] %s: %s" % (datetime.datetime.now(), self.me_obj.name, message)
 
+    def rand_say(self, sayings):
+        '''Pick a random saying from sayings and say it.'''
+        self.say(random.choice(sayings))
+
     def tick(self):
         pass
+
+    def move(self, xmod, ymod, zmod):
+        self.me_obj.loc['x'] += xmod
+        self.me_obj.loc['y'] += ymod
+        self.me_obj.loc['z'] += zmod
+        self.me_obj.last_modified = datetime.datetime.now()
+
+        from helpers import manhattan
+        ourx, oury = self.me_obj.loc['x'], self.me_obj.loc['y']
+        for o in Object.objects(physical=True):
+            # Is the distance between that object and the character less than 3?
+            if manhattan(o.loc['x'], o.loc['y'], ourx, oury) < 1:
+                # We collided against something, so return now and don't
+                # save the location changes into the database.
+                return False
+        else:
+            # We didn't collide with any objects.
+            self.me_obj.save()
+            return True
+
+    def wander(self):
+        return self.move(random.randint(-1, 1), random.randint(-1, 1), random.randint(-1, 1))
 
 
