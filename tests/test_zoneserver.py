@@ -396,11 +396,6 @@ class TestMovementHandler(unittest.TestCase):
         self.req = Mock()
         self.movement_handler = MovementHandler(self.app, self.req)
 
-    def test_set_movement(self):
-        # movement_handler = MovementHandler()
-        # self.assertEqual(expected, movement_handler.set_movement(character, xmod, ymod, zmod))
-        self.skipTest("Not Implemented.")
-
 class TestWSMovementHandler(unittest.TestCase):
     def test_on_message(self):
         # w_s_movement_handler = WSMovementHandler()
