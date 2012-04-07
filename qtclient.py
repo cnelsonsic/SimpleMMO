@@ -22,16 +22,21 @@
 # System imports
 import functools
 import datetime
-from pprint import pformat
 
 # PySide imports
 import sys
-from PySide.QtCore import *
-from PySide.QtGui import *
+# from PySide.QtCore import *
+from PySide.QtCore import Qt, SIGNAL, QSize, QTimer
+# from PySide.QtGui import *
+from PySide.QtGui import QDialog, QIcon, QLabel, QLineEdit, QPushButton,\
+                         QVBoxLayout, QApplication, QTreeWidget, QTreeWidgetItem,\
+                         QWidget, QGraphicsScene, QGraphicsView, QGraphicsWidget,\
+                         QGraphicsPixmapItem, QPainter
 
 # Project imports
 import idealclient as client
-from settings import *
+from settings import CLIENT_UPDATE_FREQ
+from helpers import euclidian
 
 DEBUG = __debug__
 
@@ -213,13 +218,6 @@ class WorldViewerDebug(QDialog):
 
         if items:
             self.objects_tree.insertTopLevelItems(0, items)
-
-def manhattan(x1, y1, x2, y2):
-    return abs(x1-x2) + abs(y1-y2)
-
-def euclidian(x1, y1, x2, y2):
-    from math import sqrt
-    return sqrt(((x1-x2)**2) + ((y1-y2)**2))
 
 
 class WorldViewer(QWidget):
