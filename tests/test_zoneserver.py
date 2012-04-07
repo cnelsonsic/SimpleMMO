@@ -228,6 +228,17 @@ class TestCharacterControllerIsOwner(unittest.TestCase):
 
         self.assertTrue(result)
 
+    def test_is_owner_no_char(self):
+        username = "username"
+        character = "character"
+
+        MockCharacter = Mock()
+        MockCharacter.objects().first = Mock(return_value=None)
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.character_controller.is_owner(username, character)
+
+        self.assertFalse(result)
+
 
 class TestObjectsHandler(AsyncHTTPTestCase):
     def get_app(self):

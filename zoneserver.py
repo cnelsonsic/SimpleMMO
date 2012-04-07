@@ -105,7 +105,11 @@ class CharacterController(object):
         return charobj
 
     def is_owner(self, username, character):
-        return Character.objects(name=character).first().owner == username
+        charobj = Character.objects(name=character).first()
+        if charobj:
+            return charobj.owner == username
+        else:
+            return False
 
     def set_movement(self, character, xmod, ymod, zmod):
         charobj = self.create_character(character)
