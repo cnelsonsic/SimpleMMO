@@ -66,7 +66,7 @@ class CharacterController(object):
         except(IndexError, AttributeError):
             return False
 
-    def create_character(self, name):
+    def create_character(self, name, owner=""):
         '''Create an in-world character if one does not already exist.
         If one exists, return it.'''
         # TODO: This is pretty dumb and needs reorganized.
@@ -76,14 +76,15 @@ class CharacterController(object):
             # So create an object for the player and save it.
             charobj = Character()
             charobj.name = name
+            charobj.owner = owner
             charobj.states.append('player')
         return charobj
 
-    def set_char_status(self, character, status):
+    def set_char_status(self, character, status, user=None):
         '''Sets a character's online status.'''
 
         # Get or Create this character.
-        charobj = self.create_character(character)
+        charobj = self.create_character(character, owner=user)
 
         # does the character already have this status?
         if status not in charobj.states:
@@ -111,8 +112,8 @@ class CharacterController(object):
         else:
             return False
 
-    def set_movement(self, character, xmod, ymod, zmod):
-        charobj = self.create_character(character)
+    def set_movement(self, character, xmod, ymod, zmod, user=None):
+        charobj = self.create_character(character, owner=user)
 
 #         try:
 #             charobj.loc
@@ -200,7 +201,7 @@ class CharStatusHandler(BaseHandler):
 
         # Only allow setting the status to online or offline.
         if status in ("online", "offline"):
-            return self.char_controller.set_char_status(character, status)
+            return self.char_controller.set_char_status(character, status, user=user)
         return False
 
 
@@ -221,7 +222,7 @@ class MovementHandler(BaseHandler):
         zmod = int(self.get_argument('z', 0))
         logging.info("Locmod is: %d, %d, %d" % (xmod, ymod, zmod))
 
-        return self.char_controller.set_movement(character, xmod, ymod, zmod)
+        return self.char_controller.set_movement(character, xmod, ymod, zmod, user=user)
 
 
 # TODO: A char movement handler token handler, which gives the user a token to use.
@@ -240,7 +241,7 @@ class WSMovementHandler(WebSocketHandler):
         user = self.get_secure_cookie('user')
         command = m['command']
         if command == "mov":
-            self.set_movement(m['char'], m['x'], m['y'], m['z'])
+            self.set_movement(m['char'], m['x'], m['y'], m['z'], user=user)
 
         self.write_message("ok")
 
