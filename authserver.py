@@ -35,7 +35,7 @@ import settings
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-from elixir_models import User, Character
+from elixir_models import User, session
 
 class PingHandler(BaseHandler):
     def get(self):
@@ -103,7 +103,10 @@ if __name__ == "__main__":
     server = BaseServer(handlers)
     server.listen(settings.AUTHSERVERPORT)
 
-    from elixir import session
+    # Connect to the elixir db
+    from elixir_models import setup
+    setup()
+
     user = User.query.filter_by(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD).first()
     if not user:
         User(username="Username", password="Password")
