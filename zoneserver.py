@@ -213,7 +213,7 @@ class MovementHandler(BaseHandler):
         user = self.get_secure_cookie('user')
         self.char_controller = CharacterController()
         if not self.char_controller.is_owner(user, character):
-            self.status(403)
+            self.set_status(403)
             self.write("User %s does not own Character %s." % (user, character))
             return False
 
