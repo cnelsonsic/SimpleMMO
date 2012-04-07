@@ -51,6 +51,7 @@ class ScriptedObject(Object):
 class Character(ScriptedObject):
     '''Players' characters in-world representation.'''
     speed = me.FloatField(default=5)
+    owner = me.StringField()
     meta = {'allow_inheritance': True}
 
 class Message(me.Document):

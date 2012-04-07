@@ -35,8 +35,7 @@ from elixir_models import metadata, setup_all, create_all
 
 import settings
 import zoneserver
-ObjectsHandler = zoneserver.ObjectsHandler
-CharStatusHandler = zoneserver.CharStatusHandler
+from zoneserver import ObjectsHandler, CharStatusHandler, MovementHandler, CharacterController
 from authserver import AuthHandler
 
 def set_up_db():
@@ -54,6 +53,143 @@ def set_user_cookie(app, request, username):
     cookiestring = authcookie.items()[0][1]
     request.cookies.update({'user': cookiestring})
     return request
+
+class TestCharacterControllerGetCharacter(unittest.TestCase):
+    def setUp(self):
+        self.character_controller = CharacterController()
+
+    def test_get_character(self):
+        mock_char = Mock(spec=['states'])
+        MockCharacter = Mock()
+        MockCharacter.objects().first = Mock(return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.character_controller.get_character("character")
+        self.assertEqual(mock_char, result)
+
+    def test_get_character_non_existent_empty_states(self):
+        mock_char = Mock()
+        mock_char.states = []
+        MockCharacter = Mock()
+        MockCharacter.objects().first = Mock(return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.character_controller.get_character("character")
+
+        self.assertFalse(result)
+
+    def test_get_character_non_existent_no_states(self):
+        mock_char = Mock(name="char", spec=[])
+        MockCharacter = Mock(name="Character")
+        MockCharacter.objects().first = Mock(name="first", return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.character_controller.get_character("character")
+
+        self.assertFalse(result)
+
+class TestCharacterControllerSetCharacterStatus(unittest.TestCase):
+    def setUp(self):
+        self.character_controller = CharacterController()
+
+    def test_set_char_status(self):
+        mock_char = Mock(name="char")
+        mock_char.states = ['alive']
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            result = self.character_controller.set_char_status("character", 'alive')
+
+        self.assertEqual(result, mock_char)
+
+    def test_set_char_status_with_new_state(self):
+        mock_char = Mock(name="char")
+        mock_char.states = []
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            self.character_controller.set_char_status("character", 'alive')
+
+        self.assertTrue('alive' in mock_char.states)
+
+    def test_set_char_status_mutually_exclusive(self):
+        mock_char = Mock(name="char")
+        mock_char.states = []
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            self.character_controller.set_char_status("character", 'online')
+
+        self.assertTrue('online' in mock_char.states)
+
+    def test_set_char_status_mutually_exclusive_flip(self):
+        mock_char = Mock(name="char")
+        mock_char.states = ['online']
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            self.character_controller.set_char_status("character", 'offline')
+
+        self.assertTrue('offline' in mock_char.states)
+        self.assertTrue('online' not in mock_char.states)
+
+class TestCharacterControllerCreateCharacter(unittest.TestCase):
+    def setUp(self):
+        self.character_controller = CharacterController()
+
+    def test_create_character(self):
+        expected = Mock()
+
+        with patch.object(self.character_controller, 'get_character', Mock(return_value=expected)):
+            result = self.character_controller.create_character("character")
+
+        self.assertEqual(result, expected)
+
+    def test_create_character_with_new_charobj(self):
+        mock_char = Mock(name="char", spec=[])
+        mock_char.states = []
+        MockCharacter = Mock(name="Character", return_value=mock_char)
+
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            with patch.object(self.character_controller, 'get_character', Mock(return_value=None)):
+                result = self.character_controller.create_character("character")
+
+        self.assertEqual(result, mock_char)
+
+class TestCharacterControllerSetMovement(unittest.TestCase):
+    def setUp(self):
+        self.character_controller = CharacterController()
+
+    def test_set_movement(self):
+        mock_char = Mock(name="char", spec=['speed', 'save'])
+        mock_char.speed = 1
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            result = self.character_controller.set_movement("character", 1, 2, 3)
+
+        self.assertEqual(result.loc['x'], 0)
+
+    def test_set_movement_existing_loc(self):
+        mock_char = Mock(name="char")
+        mock_char.speed = 1
+        mock_char.loc = {'x': 0, 'y': 0, 'z': 0}
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            result = self.character_controller.set_movement("character", 1, 2, 3)
+
+        self.assertGreater(result.loc['x'], 0)
+
+class TestCharacterControllerIsOwner(unittest.TestCase):
+    def setUp(self):
+        self.character_controller = CharacterController()
+
+    def test_is_owner(self):
+        username = "username"
+        character = "character"
+
+        MockCharacter = Mock()
+        MockCharacter.objects().first().owner = username
+        with patch.object(zoneserver, 'Character', MockCharacter):
+            result = self.character_controller.is_owner(username, character)
+
+        self.assertTrue(result)
+
 
 class TestObjectsHandler(AsyncHTTPTestCase):
     def get_app(self):
@@ -121,19 +257,23 @@ class TestObjectsHandlerUnit(unittest.TestCase):
         self.objects_handler = ObjectsHandler(self.app, self.req)
 
     def test_get_objects(self):
-        # Mock out the database's list of objects
-        zoneserver.Object.objects = list()
-
         expected = []
-        result = self.objects_handler.get_objects()
+
+        MockObject = Mock()
+        MockObject.objects = expected
+        with patch.object(zoneserver, 'Object', MockObject):
+            result = self.objects_handler.get_objects()
+
         self.assertEqual(expected, result)
 
     def test_get_objects_with_since(self):
-        # Mock out the database's objects function.
-        zoneserver.Object.objects = Mock(return_value=[])
-
         expected = []
-        result = self.objects_handler.get_objects(since=datetime.datetime.now())
+
+        MockObject = Mock()
+        MockObject.objects = Mock(return_value=expected)
+        with patch.object(zoneserver, 'Object', MockObject):
+            result = self.objects_handler.get_objects(since=datetime.datetime.now())
+
         self.assertEqual(expected, result)
 
 
@@ -191,144 +331,52 @@ class TestCharStatusHandler(AsyncHTTPTestCase):
         result = json.loads(response.body)
         self.assertTrue(len(result) > 0)
 
-class TestCharStatusHandlerUnit(unittest.TestCase):
-    def setUp(self):
-        self.app = Application([('/', CharStatusHandler),])
-        self.req = Mock()
-        self.charstatus_handler = CharStatusHandler(self.app, self.req)
-
-    def test_get_character(self):
-        mock_char = Mock(spec=['states'])
-        MockCharacter = Mock()
-        MockCharacter.objects().first = Mock(return_value=mock_char)
-
-        with patch.object(zoneserver, 'Character', MockCharacter):
-            result = self.charstatus_handler.get_character("character")
-        self.assertEqual(mock_char, result)
-
-    def test_get_character_non_existent_empty_states(self):
-        mock_char = Mock()
-        mock_char.states = []
-        MockCharacter = Mock()
-        MockCharacter.objects().first = Mock(return_value=mock_char)
-
-        with patch.object(zoneserver, 'Character', MockCharacter):
-            result = self.charstatus_handler.get_character("character")
-
-        self.assertFalse(result)
-
-    def test_get_character_non_existent_no_states(self):
-        mock_char = Mock(name="char", spec=[])
-        MockCharacter = Mock(name="Character")
-        MockCharacter.objects().first = Mock(name="first", return_value=mock_char)
-
-        with patch.object(zoneserver, 'Character', MockCharacter):
-            result = self.charstatus_handler.get_character("character")
-
-        self.assertFalse(result)
-
-    def test_create_character(self):
-        expected = Mock()
-
-        with patch.object(self.charstatus_handler, 'get_character', Mock(return_value=expected)):
-            result = self.charstatus_handler.create_character("character")
-
-        self.assertEqual(result, expected)
-
-    def test_create_character_with_new_charobj(self):
-        mock_char = Mock(name="char", spec=[])
-        mock_char.states = []
-        MockCharacter = Mock(name="Character", return_value=mock_char)
-
-        with patch.object(zoneserver, 'Character', MockCharacter):
-            with patch.object(self.charstatus_handler, 'get_character', Mock(return_value=None)):
-                result = self.charstatus_handler.create_character("character")
-
-        self.assertEqual(result, mock_char)
-
-    def test_set_char_status(self):
-        mock_char = Mock(name="char")
-        mock_char.states = ['alive']
-
-        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
-            result = self.charstatus_handler.set_char_status("character", 'alive')
-
-        self.assertEqual(result, mock_char)
-
-    def test_set_char_status_with_new_state(self):
-        mock_char = Mock(name="char")
-        mock_char.states = []
-
-        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
-            result = self.charstatus_handler.set_char_status("character", 'alive')
-
-        self.assertTrue('alive' in mock_char.states)
-
-    def test_set_char_status_mutually_exclusive(self):
-        mock_char = Mock(name="char")
-        mock_char.states = []
-
-        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
-            result = self.charstatus_handler.set_char_status("character", 'online')
-
-        self.assertTrue('online' in mock_char.states)
-
-    def test_set_char_status_mutually_exclusive_flip(self):
-        mock_char = Mock(name="char")
-        mock_char.states = ['online']
-
-        with patch.object(self.charstatus_handler, 'create_character', Mock(return_value=mock_char)):
-            result = self.charstatus_handler.set_char_status("character", 'offline')
-
-        self.assertTrue('offline' in mock_char.states)
-        self.assertTrue('online' not in mock_char.states)
-
 class TestMovementHandler(unittest.TestCase):
-    def test_post(self):
-        # movement_handler = MovementHandler()
-        # self.assertEqual(expected, movement_handler.post())
-        pass # TODO: implement your test here
+    def setUp(self):
+        self.app = Application([('/', MovementHandler),])
+        self.req = Mock()
+        self.movement_handler = MovementHandler(self.app, self.req)
 
     def test_set_movement(self):
         # movement_handler = MovementHandler()
         # self.assertEqual(expected, movement_handler.set_movement(character, xmod, ymod, zmod))
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
 class TestWSMovementHandler(unittest.TestCase):
     def test_on_message(self):
         # w_s_movement_handler = WSMovementHandler()
         # self.assertEqual(expected, w_s_movement_handler.on_message(message))
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
     def test_open(self):
         # w_s_movement_handler = WSMovementHandler()
         # self.assertEqual(expected, w_s_movement_handler.open())
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
     def test_set_movement(self):
         # w_s_movement_handler = WSMovementHandler()
         # self.assertEqual(expected, w_s_movement_handler.set_movement(character, xmod, ymod, zmod))
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
 class TestAdminHandler(unittest.TestCase):
     def test___init__(self):
         # admin_handler = AdminHandler(*args, **kwargs)
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
     def test_echo(self):
         # admin_handler = AdminHandler(*args, **kwargs)
         # self.assertEqual(expected, admin_handler.echo(arg))
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
     def test_post(self):
         # admin_handler = AdminHandler(*args, **kwargs)
         # self.assertEqual(expected, admin_handler.post())
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
 class TestMain(unittest.TestCase):
     def test_main(self):
         # self.assertEqual(expected, main(port))
-        pass # TODO: implement your test here
+        self.skipTest("Not Implemented.")
 
 if __name__ == '__main__':
     unittest.main()

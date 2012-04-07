@@ -24,7 +24,6 @@ A server providing a list of objects present in the zone to clients.
 
 import json
 import datetime
-import uuid
 import time
 import logging
 
@@ -32,7 +31,7 @@ import tornado
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-from settings import DATETIME_FORMAT, CLIENT_UPDATE_FREQ
+from settings import DATETIME_FORMAT
 
 from tornado.options import define, options
 try:
@@ -52,52 +51,10 @@ import mongoengine as me
 
 from mongoengine_models import Character, Object, IntVector
 
-class ObjectsHandler(BaseHandler):
-    '''ObjectsHandler returns a list of objects and their data.'''
-
-#     @tornado.web.authenticated
-    def head(self):
-        lastdate = Object.objects.order_by('-last_modified').first().last_modified
-        cache_time = 10*365*24*60*60 # 10 Years.
-        self.set_header('Last-Modified', lastdate)
-        self.set_header('Expires', lastdate + datetime.timedelta(seconds=cache_time))
-        self.set_header('Cache-Control', 'max-age=' + str(cache_time))
-
-    @tornado.web.authenticated
-    def get(self):
-        since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
-        if since.year == 2010:
-            since = None
-        objs = [m.to_mongo() for m in self.get_objects(since)]
-        retval = json.dumps(objs, default=json_util.default)
-        self.content_type = 'application/json'
-        self.write(retval)
-
-    def get_objects(self, since=None):
-        '''Gets a list of objects in the zone.
-        Should not be called without an argument except when
-        a client connects to the zone initially.'''
-
-        # Query the mongo objects database
-        if since is not None:
-            objects = Object.objects(last_modified__gte=since)
-        else:
-            objects = Object.objects
-
-        return objects
-
-
-class CharStatusHandler(BaseHandler):
-    '''Manages if a character is active in the zone or not.'''
-
-    @tornado.web.authenticated
-    def post(self):
-        character = self.get_argument('character', '')
-        status = self.get_argument('status', '')
-        # If user owns this character
-        if status in ("online", "offline"):
-            return self.set_char_status(character, status)
-        return False
+class CharacterController(object):
+    '''A controller for mongo character objects.'''
+    def __getitem__(self, key):
+        return self.get_character(key)
 
     def get_character(self, character):
         '''Gets a character from the database by name.
@@ -147,35 +104,22 @@ class CharStatusHandler(BaseHandler):
 
         return charobj
 
-
-class MovementHandler(BaseHandler):
-    '''A stupid HTTP-based handler for handling character movement.'''
-    @tornado.web.authenticated
-    def post(self):
-        character = self.get_argument('character', '')
-        xmod = int(self.get_argument('x', 0))
-        ymod = int(self.get_argument('y', 0))
-        zmod = int(self.get_argument('z', 0))
-        logging.info("Locmod is: %d, %d, %d" % (xmod, ymod, zmod))
-
-
-        return self.set_movement(character, xmod, ymod, zmod)
+    def is_owner(self, username, character):
+        return Character.objects(name=character).first().owner == username
 
     def set_movement(self, character, xmod, ymod, zmod):
+        charobj = self.create_character(character)
 
-        # TODO: Check that user owns character.
-        user = self.get_secure_cookie('user')
-        try:
-            charobj = Character.objects(name=character).first()
-            charobj.loc
-        except(AttributeError):
-            # Character doesn't exist, create a new one.
-            self.set_status(500)
-            self.write('Character "%s" was not set to online, and didn\'t exist in the database.' % character)
-            return
+#         try:
+#             charobj.loc
+#         except(AttributeError):
+#             # Character doesn't exist, create a new one.
+#             self.set_status(500)
+#             self.write('Character "%s" was not set to online, and didn\'t exist in the database.' % character)
+#             return
 
         # Set the character's new position based on the x, y and z modifiers.
-        if charobj.loc is not None:
+        if hasattr(charobj, 'loc'):
             charobj.loc['x'] += xmod*charobj.speed
             charobj.loc['y'] += ymod*charobj.speed
             charobj.loc['z'] += zmod*charobj.speed
@@ -183,6 +127,82 @@ class MovementHandler(BaseHandler):
         else:
             charobj.loc = IntVector(x=0, y=0, z=0)
         charobj.save()
+        return charobj
+
+
+class ObjectsHandler(BaseHandler):
+    '''ObjectsHandler returns a list of objects and their data.'''
+
+#     @tornado.web.authenticated
+    def head(self):
+        lastdate = Object.objects.order_by('-last_modified').first().last_modified
+        cache_time = 10*365*24*60*60 # 10 Years.
+        self.set_header('Last-Modified', lastdate)
+        self.set_header('Expires', lastdate + datetime.timedelta(seconds=cache_time))
+        self.set_header('Cache-Control', 'max-age=' + str(cache_time))
+
+    @tornado.web.authenticated
+    def get(self):
+        since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
+        if since.year == 2010:
+            since = None
+        objs = [m.to_mongo() for m in self.get_objects(since)]
+        retval = json.dumps(objs, default=json_util.default)
+        self.content_type = 'application/json'
+        self.write(retval)
+
+    def get_objects(self, since=None):
+        '''Gets a list of objects in the zone.
+        Should not be called without an argument except when
+        a client connects to the zone initially.'''
+
+        # Query the mongo objects database
+        if since is not None:
+            objects = Object.objects(last_modified__gte=since)
+        else:
+            objects = Object.objects
+
+        return objects
+
+
+class CharStatusHandler(BaseHandler):
+    '''Manages if a character is active in the zone or not.'''
+
+    @tornado.web.authenticated
+    def post(self):
+        user = self.get_secure_cookie('user')
+        character = self.get_argument('character', '')
+        status = self.get_argument('status', '')
+        self.char_controller = CharacterController()
+
+        if not self.char_controller.is_owner(user, character):
+            return False
+
+        # Only allow setting the status to online or offline.
+        if status in ("online", "offline"):
+            return self.char_controller.set_char_status(character, status)
+        return False
+
+
+class MovementHandler(BaseHandler):
+    '''A stupid HTTP-based handler for handling character movement.'''
+    @tornado.web.authenticated
+    def post(self):
+        character = self.get_argument('character', '')
+        user = self.get_secure_cookie('user')
+        self.char_controller = CharacterController()
+        if not self.char_controller.is_owner(user, character):
+            self.status(403)
+            self.write("User %s does not own Character %s." % (user, character))
+            return False
+
+        xmod = int(self.get_argument('x', 0))
+        ymod = int(self.get_argument('y', 0))
+        zmod = int(self.get_argument('z', 0))
+        logging.info("Locmod is: %d, %d, %d" % (xmod, ymod, zmod))
+
+        return self.char_controller.set_movement(character, xmod, ymod, zmod)
+
 
 # TODO: A char movement handler token handler, which gives the user a token to use.
 class WSMovementHandler(WebSocketHandler):
