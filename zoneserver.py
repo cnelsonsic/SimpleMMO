@@ -124,7 +124,7 @@ class CharacterController(object):
 #             return
 
         # Set the character's new position based on the x, y and z modifiers.
-        if hasattr(charobj, 'loc'):
+        if hasattr(charobj, 'loc') and charobj.loc is not None:
             charobj.loc['x'] += xmod*charobj.speed
             charobj.loc['y'] += ymod*charobj.speed
             charobj.loc['z'] += zmod*charobj.speed

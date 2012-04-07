@@ -183,6 +183,16 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
 
         self.assertGreater(result.loc['x'], 0)
 
+    def test_set_movement_loc_is_none(self):
+        mock_char = Mock(name="char")
+        mock_char.speed = 1
+        mock_char.loc = None
+
+        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+            result = self.character_controller.set_movement("character", 1, 2, 3)
+
+        self.assertEqual(result.loc['x'], 0)
+
     def test_set_movement_physics_collision(self):
         mock_char = Mock(name="char")
         mock_char.speed = 1
