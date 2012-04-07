@@ -23,15 +23,12 @@
 A server providing URLs to ZoneServers.
 '''
 
-import json
 import time
-import logging
 
 import tornado
 import requests
 
-from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME,\
-                        ZONESTARTPORT, ZONEENDPORT
+from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
@@ -40,17 +37,7 @@ NEXTCLEANUP = time.time()+(5*60)
 
 JOBS = []
 
-from elixir_models import *
-
-# On startup, iterate through entries in zones table. See if they are up, if not, delete them.
-for port in [z[0] for z in session.query(Zone.port).all()]:
-    serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
-    try:
-        requests.get(serverurl)
-    except(requests.ConnectionError):
-        # Server is down, remove it from the zones table.
-        Zone.query.filter_by(port=port).delete()
-    session.commit()
+from elixir_models import session, Zone
 
 class ZoneHandler(BaseHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
@@ -145,6 +132,20 @@ if __name__ == "__main__":
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/(.*)", ZoneHandler))
+
+    # Connect to the elixir db
+    from elixir_models import setup
+    setup()
+
+    # On startup, iterate through entries in zones table. See if they are up, if not, delete them.
+    for port in [z[0] for z in session.query(Zone.port).all()]:
+        serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
+        try:
+            requests.get(serverurl)
+        except(requests.ConnectionError):
+            # Server is down, remove it from the zones table.
+            Zone.query.filter_by(port=port).delete(), Zone
+        session.commit()
 
     server = BaseServer(handlers)
     server.listen(MASTERZONESERVERPORT)
