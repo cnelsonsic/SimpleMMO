@@ -156,6 +156,14 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
     def setUp(self):
         self.character_controller = CharacterController()
 
+        self.MockObject = Mock(name="Object")
+        self.MockObject.objects = Mock(return_value=list())
+        self.character_patch = patch.object(zoneserver, 'Object', self.MockObject)
+        self.character_patch.start()
+
+    def tearDown(self):
+        self.character_patch.stop()
+
     def test_set_movement(self):
         mock_char = Mock(name="char", spec=['speed', 'save'])
         mock_char.speed = 1
@@ -174,6 +182,36 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
             result = self.character_controller.set_movement("character", 1, 2, 3)
 
         self.assertGreater(result.loc['x'], 0)
+
+    def test_set_movement_physics_collision(self):
+        mock_char = Mock(name="char")
+        mock_char.speed = 1
+        mock_char.loc = {'x': 0, 'y': 0, 'z': 0}
+
+        self.MockObject.objects = Mock(return_value=[mock_char])
+
+        with patch.object(zoneserver, 'Object', self.MockObject):
+            with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+                result = self.character_controller.set_movement("character", 1, 2, 3)
+
+        self.assertFalse(result)
+
+    def test_set_movement_physics_no_collision(self):
+        mock_char = Mock(name="char")
+        mock_char.speed = 1
+        mock_char.loc = {'x': 0, 'y': 0, 'z': 0}
+
+        mock_otherchar = Mock(name="other char")
+        mock_otherchar.loc = {'x': 4, 'y': 4, 'z': 0}
+
+        self.MockObject.objects = Mock(return_value=[mock_otherchar])
+
+        with patch.object(zoneserver, 'Object', self.MockObject):
+            with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+                result = self.character_controller.set_movement("character", 1, 2, 3)
+
+        self.assertEqual(result, mock_char)
+
 
 class TestCharacterControllerIsOwner(unittest.TestCase):
     def setUp(self):

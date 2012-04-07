@@ -126,6 +126,22 @@ class CharacterController(object):
             charobj.last_modified = datetime.datetime.now()
         else:
             charobj.loc = IntVector(x=0, y=0, z=0)
+
+        # Do simple physics here.
+        # TODO: Split this into its own method.
+        def manhattan(x1, y1, x2, y2):
+            return abs(x1-x2) + abs(y1-y2)
+
+        charx, chary = charobj.loc['x'], charobj.loc['y']
+        for o in Object.objects(physical=True):
+            # Is the distance between that object and the character less than 3?
+            if manhattan(o.loc['x'], o.loc['y'], charx, chary) < 3:
+                # We collided against something, so return now and don't
+                # save the location changes into the database.
+                return False
+
+        # We didn't collide, hooray!
+        # So we'll save to the database and return it.
         charobj.save()
         return charobj
 
