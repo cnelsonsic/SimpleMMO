@@ -97,7 +97,7 @@ class ZoneScriptRunner(BaseTickServer):
     def tick(self):
         '''Iterate through all known scripts and call their tick method.'''
         # Tick all the things
-        print time.time()
+#         print time.time()
         for scriptname, scripts in self.scripts.items():
             for script in scripts:
                 # TODO: Pass some locals or somesuch so that they can query the db
