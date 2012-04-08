@@ -41,6 +41,9 @@ class PingHandler(BaseHandler):
     def get(self):
         self.write("pong")
 
+# TODO: Make an SQLUserController
+# TODO: Make an SQLCharacterController
+
 class AuthHandler(BaseHandler):
     '''AuthHandler authenticates a user and sets a session in the database.'''
     def post(self):
