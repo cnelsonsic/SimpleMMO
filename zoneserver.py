@@ -196,13 +196,17 @@ class CharStatusHandler(BaseHandler):
         status = self.get_argument('status', '')
         self.char_controller = CharacterController()
 
-        if not self.char_controller.is_owner(user, character):
-            return False
+        # If the character is not owned by this user, disallow it.
+#         if not self.char_controller.is_owner(user, character):
+#             retval = False
 
+        retval = False
         # Only allow setting the status to online or offline.
         if status in ("online", "offline"):
-            return self.char_controller.set_char_status(character, status, user=user)
-        return False
+            if self.char_controller.set_char_status(character, status, user=user):
+                retval = True
+
+        self.write(json.dumps(retval))
 
 
 class MovementHandler(BaseHandler):
