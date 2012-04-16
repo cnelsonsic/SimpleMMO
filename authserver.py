@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     user = User.query.filter_by(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD).first()
     if not user:
-        User(username="Username", password="Password")
+        User(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         session.commit()
 
     print "Starting up Authserver..."
