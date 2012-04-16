@@ -1,0 +1,11 @@
+[nosetests]
+verbosity=1
+exe=1
+detailed-errors=1
+with-doctest=1
+
+with-coverage=1
+cover-tests=0
+cover-html=1
+cover-html-dir=coveragehtml
+
