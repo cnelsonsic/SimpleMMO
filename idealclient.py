@@ -33,21 +33,13 @@ import requests
 
 from settings import *
 from settings import DEFAULT_USERNAME, DEFAULT_PASSWORD
+from settings import AUTHSERVER, CHARSERVER, ZONESERVER
 
 # Some settings:
 USERNAME = DEFAULT_USERNAME
 ADMINUSERNAME = "admin"
 PASSWORD = DEFAULT_PASSWORD
 DEBUG = True
-
-# What hostname are the servers on
-PREFIX = "http://" # FIXME: Use proper name.
-HOSTNAME = "localhost"
-
-# Server URLs
-AUTHSERVER = "%s%s:%d" % (PREFIX, HOSTNAME, AUTHSERVERPORT)
-CHARSERVER = "%s%s:%d" % (PREFIX, HOSTNAME, CHARSERVERPORT)
-ZONESERVER = "%s%s:%d" % (PREFIX, HOSTNAME, MASTERZONESERVERPORT)
 
 # A global holder for our cookies.
 COOKIES = {}
