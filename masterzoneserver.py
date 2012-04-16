@@ -40,7 +40,7 @@ JOBS = []
 from elixir_models import session, Zone
 
 class ZoneHandler(BaseHandler):
-    '''ZoneHandler gets the URL for a given zone ID, or spins up a new 
+    '''ZoneHandler gets the URL for a given zone ID, or spins up a new
     instance of the zone for that player.'''
 
     @tornado.web.authenticated
