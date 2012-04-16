@@ -156,4 +156,11 @@ if __name__ == "__main__":
     server.listen(MASTERZONESERVERPORT)
 
     print "Starting up Master Zoneserver..."
-    server.start()
+    try:
+        server.start()
+    except KeyboardInterrupt:
+        # Catch ctrl+c and continue with the script.
+        pass
+
+    for job in JOBS:
+        job.terminate()
