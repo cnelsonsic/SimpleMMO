@@ -6,3 +6,4 @@ mongodb
 .pythoscope
 *,cover
 coveragehtml
+mongodb*/*
