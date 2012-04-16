@@ -48,6 +48,17 @@ class CharacterZoneHandler(BaseHandler):
     # TODO: Add character online/offline status
 
 if __name__ == "__main__":
+    import tornado
+    from tornado.options import options, define
+    define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
+
+    tornado.options.parse_command_line()
+    dburi = options.dburi
+
+    # Connect to the elixir db
+    from elixir_models import setup
+    setup(db_uri=dburi)
+
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/(.*)/zone", CharacterZoneHandler))

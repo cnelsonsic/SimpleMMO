@@ -96,6 +96,12 @@ class CharacterHandler(BaseHandler):
         return ['Graxnor', 'Rumtiddlykins']
 
 if __name__ == "__main__":
+    from tornado.options import options, define
+    define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
+
+    tornado.options.parse_command_line()
+    dburi = options.dburi
+
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/ping", PingHandler))
@@ -108,7 +114,7 @@ if __name__ == "__main__":
 
     # Connect to the elixir db
     from elixir_models import setup
-    setup()
+    setup(db_uri=dburi)
 
     user = User.query.filter_by(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD).first()
     if not user:

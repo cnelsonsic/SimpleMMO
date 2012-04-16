@@ -133,9 +133,16 @@ if __name__ == "__main__":
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/(.*)", ZoneHandler))
 
+    import tornado
+    from tornado.options import options, define
+    define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
+
+    tornado.options.parse_command_line()
+    dburi = options.dburi
+
     # Connect to the elixir db
     from elixir_models import setup
-    setup()
+    setup(db_uri=dburi)
 
     # On startup, iterate through entries in zones table. See if they are up, if not, delete them.
     for port in [z[0] for z in session.query(Zone.port).all()]:
