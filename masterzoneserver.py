@@ -32,7 +32,6 @@ from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-ZONEPIDS = []
 NEXTCLEANUP = time.time()+(5*60)
 
 JOBS = []
@@ -98,7 +97,6 @@ class ZoneHandler(BaseHandler):
 
         # Wait for server to come up
         # Just query it on "/" every hundred ms or so.
-        import time
         starttime = time.time()
         status = 0
         numrequests = 0
