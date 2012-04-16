@@ -1,7 +1,6 @@
 *.pyc
 *.pyo
 *.sqlite
-mongodb
 .coverage
 .pythoscope
 *,cover
