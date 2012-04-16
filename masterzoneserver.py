@@ -28,7 +28,8 @@ import time
 import tornado
 import requests
 
-from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME
+from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME,\
+                     START_ZONE_WITH, SUPERVISORD, SUBPROCESS
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
@@ -82,18 +83,46 @@ class ZoneHandler(BaseHandler):
         # Server is not already up
         if not serverurl:
             # Try to start a zone server
-            from start_supervisord_process import start_zone
-            try:
-                serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
-                print "SERVER URL:", serverurl
-            except UserWarning, exc:
-                if "Zone already exists in process list." in exc:
-                    print exc
-                    # Zone is already up
-                    pass
-                else:
-                    raise
+            if START_ZONE_WITH == SUPERVISORD:
+                from start_supervisord_process import start_zone
+                try:
+                    serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
+                except UserWarning, exc:
+                    if "Zone already exists in process list." in exc:
+                        print exc
+                        # Zone is already up
+                        pass
+                    else:
+                        raise
 
+            elif START_ZONE_WITH == SUBPROCESS:
+                import subprocess
+                import requests
+                import sys
+                port = 1300
+                url = "http://localhost"
+                instancetype = 'playerinstance'
+                zonename = 'defaultzone'
+
+                while True:
+                    # Is this port already taken?
+                    try:
+                        requests.get("%s:%d" % (url, port))
+                    except requests.ConnectionError:
+                        # Port open!
+                        print "CHOSE PORT %d" % port
+                        break
+                    port += 1
+
+                args = ['zoneserver.py', '--port=%d' % port,
+                                         '--instancetype=%s' % instancetype,
+                                         '--zonename=%s' % zonename,
+                                         '--owner=%s' % owner]
+                cmd = [sys.executable]+args
+                url = "http://localhost:%d" % port
+                serverurl = url
+                s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                JOBS.append(s)
 
         # Wait for server to come up
         # Just query it on "/" every hundred ms or so.
