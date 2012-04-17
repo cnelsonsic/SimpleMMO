@@ -73,11 +73,11 @@ class TestClient(unittest.TestCase):
     def test_characters(self):
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(c.characters)
-        self.assertTrue('Graxnor' in c.characters)
+        self.assertIn('Graxnor', c.characters)
 
     def test_characters_get_obj(self):
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        self.assertTrue('Graxnor' in c.characters)
+        self.assertIn('Graxnor', c.characters)
         self.assertTrue(c.characters['Graxnor'])
 
     def test_character_obj_zone(self):
@@ -87,9 +87,13 @@ class TestClient(unittest.TestCase):
     def test_get_zone_url(self):
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         zoneid = c.get_zone('Graxnor')
-        zoneurl = c.zone(zoneid)
-        print zoneurl
-        self.assertTrue('http' in zoneurl)
+        zoneurl = c.get_zone_url(zoneid)
+        self.assertIn('http', zoneurl)
+
+    def test_get_objects(self):
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        c.get_objects()
+        self.assertTrue(c.objects)
 
 
 if __name__ == '__main__':

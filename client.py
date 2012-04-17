@@ -39,7 +39,7 @@ We'll need to know what zone id the character is in:
 playerinstance-GhibliHills-Groxnor
 
 To connect, we need to get the zone URL:
->>> c.zones('playerinstance-GhibliHills-Groxnor')
+>>> c.get_zone_url('playerinstance-GhibliHills-Groxnor')
 http://127.0.0.1:1234
 
 Now we need all the objects from the zoneserver
@@ -58,6 +58,7 @@ True
 
 '''
 
+import datetime
 import json
 import requests
 
@@ -102,6 +103,8 @@ class Character(object):
 class Client(object):
     def __init__(self, username=None, password=None):
         self.characters = {}
+        self.last_object_update = datetime.datetime(2010, 1, 1)
+        self.objects = {}
 
         self.cookies = {}
         if username and password:
@@ -127,7 +130,11 @@ class Client(object):
             for charname in json.loads(r.content):
                 self.characters[charname] = Character(charname)
 
-    def get_zone(self, character):
+    def get_zone(self, character=None):
+        if not character:
+            # No character passed, grab the first one.
+            character = self.characters.keys()[0]
+
         r = requests.get(''.join((settings.CHARSERVER, "/%s/zone" % character)), cookies=self.cookies)
         if r.status_code == 200:
             data = json.loads(r.content)
@@ -135,17 +142,45 @@ class Client(object):
             self.characters[character].zone = zone
             return zone
 
-    def zone(self, zoneid):
+    def get_zone_url(self, zoneid=None):
         '''Get the zone server URI for a given zoneid.'''
+        if zoneid is None:
+            # No zoneid specified, just grab the first character's zone.
+            if self.characters.keys():
+                zoneid = self.get_zone()
+            else:
+                raise ClientError("A zoneid is required if there are no characters.")
+
         r = requests.get(''.join((settings.ZONESERVER, "/%s" % zoneid)), cookies=self.cookies)
         if r.status_code == 200:
             zoneurl = r.content
             if zoneurl == "":
                 raise ClientError("Did not get a zone URL for zoneid %s." % zoneid)
             else:
-                return r.content
+                self.last_zone = r.content
+                return self.last_zone
         else:
-            # TODO: Should probably raise an error here.
-            return r.status_code, r.content
+            raise ClientError("Unexpected status from MasterZoneServer: %d (%s)" % (r.status_code, r.content))
 
+    def get_objects(self, zone=None):
+        if zone is None:
+            zone = self.get_zone_url()
+
+        if "http://" not in zone:
+            # zone is probably a zoneid
+            zone = self.zone(zone)
+
+        data = {"since": self.last_object_update.strftime(settings.DATETIME_FORMAT)}
+        r = requests.get(''.join((zone, '/objects')), cookies=self.cookies, params=data)
+
+        if r.status_code == 200:
+            objects = json.loads(r.content)
+            for obj in objects:
+                objid = obj.get('_id', {}).get('$oid')
+                self.objects[objid] = obj
+        else:
+            raise ClientError("Unexpected status from ZoneServer %s: %d (%s)" % (zone, r.status_code, r.content))
+
+        self.last_object_update = datetime.datetime.now()
+        return objects
 
