@@ -29,6 +29,8 @@ class TestClient(unittest.TestCase):
         servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=./mongodb-unittest/']
         servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=sqlite://']
         for uri, args in servers.iteritems():
+            if sys.executable in args:
+                args.extend(['--log-file-prefix=log/%s.log' % args[1], '--logging=info'])
             print "Starting %s at %s" % (' '.join(args), uri)
             cmd = args
             s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
