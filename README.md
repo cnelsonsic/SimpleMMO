@@ -1,5 +1,5 @@
 
-
+[![Build Status](https://secure.travis-ci.org/cnelsonsic/SimpleMMO.png?branch=master)](http://travis-ci.org/cnelsonsic/SimpleMMO)
 
 === Quick Installation ===
 You will need pip to install the requirements, you can do something like:
