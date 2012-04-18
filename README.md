@@ -1,16 +1,20 @@
-
 [![Build Status](https://secure.travis-ci.org/cnelsonsic/SimpleMMO.png?branch=master)](http://travis-ci.org/cnelsonsic/SimpleMMO)
 
-=== Quick Installation ===
+Quick Installation
+==================
 You will need pip to install the requirements, you can do something like:
-sudo apt-get install python-setuptools python-dev build-essential
+
+    sudo apt-get install python-setuptools python-dev build-essential
 or
-sudo yum install python-setuptools python-devel gcc
+
+    sudo yum install python-setuptools python-devel gcc
+
 followed by
-sudo easy_install -U pip
+
+    sudo easy_install -U pip
 
 You'll need to use pip to install the required python packages:
-sudo pip install -r requirements.txt
+    sudo pip install -r requirements.txt
 
 SimpleMMO uses supervisor to control its server processes, so you will need to
 start them by running `supervisord` while in the SimpleMMO checkout directory.
@@ -20,7 +24,8 @@ Alternately, you can deploy without supervisord (not recommended) and manage
 processes yourself.
 
 
-=== Databases ===
+Databases
+=========
 SimpleMMO uses a combination of databases to do its job most effectively.
 
 The bulk of database work is done in an SQL database, you can use MySQL, Postgres,
