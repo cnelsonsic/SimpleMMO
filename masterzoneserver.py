@@ -24,6 +24,7 @@ A server providing URLs to ZoneServers.
 '''
 
 import time
+import logging
 
 import tornado
 import requests
@@ -38,6 +39,7 @@ NEXTCLEANUP = time.time()+(5*60)
 JOBS = []
 
 from elixir_models import session, Zone
+logging.getLogger('connectionpool').setLevel(logging.ERROR)
 
 class ZoneHandler(BaseHandler):
     '''ZoneHandler gets the URL for a given zone ID, or spins up a new
@@ -56,6 +58,7 @@ class ZoneHandler(BaseHandler):
     def get_url(self, zoneid):
         '''Gets the zone URL from the database based on its id.
         ZoneServer ports start at 1300.'''
+        logging.info("Launching zone %s" % zoneid)
         instance_type, name, owner = zoneid.split("-")
         return self.launch_zone(instance_type, name, owner)
 
@@ -66,39 +69,54 @@ class ZoneHandler(BaseHandler):
         # Make sure the name exists
         # Make sure owner is real
 
-        # See if it's already up:
         zoneid = '-'.join((instance_type, name, owner))
-        ports = session.query(Zone.port).filter_by(zoneid=zoneid).all()
-        from settings import PROTOCOL, HOSTNAME
+
+        # If it's in the database, it's probably still up:
+        zone = Zone.get_by(zoneid=zoneid)
+        if zone and zone.url:
+            logging.info("Got zone url %s for zoneid %s from database." % (zone.url, zoneid))
+            return zone.url
+
+        # See if it's already up:
+        zones = Zone.query.filter_by(zoneid=zoneid).all()
+#         from settings import PROTOCOL, HOSTNAME
         serverurl = None
-        for port in ports:
-            serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port.port)
+        for zone in zones:
+            port = zone.port
+            serverurl = zone.url
+#             serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port.port)
             try:
                 status = requests.get(serverurl).status_code
                 if status == 200:
+                    logging.info("Server was already up and in the db: %s" % serverurl)
                     break
             except requests.ConnectionError:
+                serverurl = None
                 continue
+
 
         # Server is not already up
         if not serverurl:
             # Try to start a zone server
             if START_ZONE_WITH == SUPERVISORD:
+                logging.info("Starting process with supervisord.")
                 from start_supervisord_process import start_zone
                 try:
                     serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
                 except UserWarning, exc:
                     if "Zone already exists in process list." in exc:
                         print exc
-                        # Zone is already up
+                        logging.info("Zone is already up.")
                         pass
                     else:
                         raise
 
             elif START_ZONE_WITH == SUBPROCESS:
+                logging.info("Starting process with subprocess.")
                 import subprocess
                 import requests
                 import sys
+                # FIXME: This stuff should be pulled from settings.
                 port = 1300
                 url = "http://localhost"
                 instancetype = 'playerinstance'
@@ -110,7 +128,7 @@ class ZoneHandler(BaseHandler):
                         requests.get("%s:%d" % (url, port))
                     except requests.ConnectionError:
                         # Port open!
-                        print "CHOSE PORT %d" % port
+                        logging.info("Chose port %d" % port)
                         break
                     port += 1
 
@@ -121,6 +139,8 @@ class ZoneHandler(BaseHandler):
                 cmd = [sys.executable]+args
                 url = "http://localhost:%d" % port
                 serverurl = url
+                logging.info("Starting %s" % ' '.join(args))
+                logging.info("Server url: %s" % serverurl)
                 s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 JOBS.append(s)
 
@@ -129,6 +149,7 @@ class ZoneHandler(BaseHandler):
         starttime = time.time()
         status = 0
         numrequests = 0
+        logging.info("Waiting for server on %s" % serverurl)
         while status != 200:
             try:
                 status = requests.get(serverurl).status_code
@@ -139,12 +160,17 @@ class ZoneHandler(BaseHandler):
 
             time.sleep(.1)
             if time.time() > starttime+ZONESTARTUPTIME:
+                logging.info("ZoneServer never came up after %d seconds." % ZONESTARTUPTIME)
                 raise tornado.web.HTTPError(504, "Launching zone %s timed out." % serverurl)
 
+        logging.info("Starting zone %s (%s) took %f seconds and %d requests." % (zoneid, serverurl, time.time()-starttime, numrequests))
         print "Starting zone %s (%s) took %f seconds and %d requests." % (zoneid, serverurl, time.time()-starttime, numrequests)
 
         # If successful, write our URL to the database and return it
-        # TODO: Store useful information in the database.
+        # Store useful information in the database.
+        Zone(zoneid=zoneid, port=port, owner=owner, url=serverurl)
+        session.commit()
+        logging.info("Zone server came up at %s." % serverurl)
         return serverurl
 
     def cleanup(self):
