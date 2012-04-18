@@ -16,6 +16,9 @@ SimpleMMO uses supervisor to control its server processes, so you will need to
 start them by running `supervisord` while in the SimpleMMO checkout directory.
 You can use `supervisorctl` to check up on the server processes.
 
+Alternately, you can deploy without supervisord (not recommended) and manage
+processes yourself.
+
 
 === Databases ===
 SimpleMMO uses a combination of databases to do its job most effectively.
