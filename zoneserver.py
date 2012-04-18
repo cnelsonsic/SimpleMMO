@@ -274,9 +274,11 @@ class AdminHandler(BaseHandler):
             raise tornado.web.HTTPError(403)
 
 
-def main(port=1300):
+def main():
     tornado.options.parse_command_line()
 
+    # Port
+    port = options.port
     # Instance Type
     instancetype = options.instancetype
     # Zone name
@@ -318,4 +320,4 @@ def main(port=1300):
     server.start()
 
 if __name__ == "__main__":
-    main(port=options.port)
+    main()
