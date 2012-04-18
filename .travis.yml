@@ -3,7 +3,7 @@ python:
   - "2.7"
 before_install:
     - sudo apt-get update
-    - sudo apt-get install mongodb sqlite-3 build-essential python-dev python-setuptools
+    - sudo apt-get install mongodb sqlite3 build-essential python-dev python-setuptools
 # command to install dependencies
 install: pip install -r requirements.txt --use-mirrors
 # # command to run tests
