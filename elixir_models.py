@@ -64,6 +64,7 @@ class Zone(Entity):
 
     zoneid = Field(UnicodeText, unique=True, primary_key=True)
     port = Field(Integer, unique=True)
+    url = Field(UnicodeText)
     character = ManyToOne('Character')
 
 class Message(Entity):
