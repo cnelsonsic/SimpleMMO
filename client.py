@@ -103,6 +103,7 @@ class Character(object):
 class Client(object):
     def __init__(self, username=None, password=None):
         self.characters = {}
+        self.last_character = None
         self.last_object_update = datetime.datetime(2010, 1, 1)
         self.objects = {}
 
@@ -129,11 +130,16 @@ class Client(object):
         if r.status_code == 200:
             for charname in json.loads(r.content):
                 self.characters[charname] = Character(charname)
+                self.last_character = charname
 
     def get_zone(self, character=None):
         if not character:
             # No character passed, grab the first one.
-            character = self.characters.keys()[0]
+            character = self.last_character
+        else:
+            self.last_character = character
+
+        # TODO: Cache this.
 
         r = requests.get(''.join((settings.CHARSERVER, "/%s/zone" % character)), cookies=self.cookies)
         if r.status_code == 200:
@@ -151,6 +157,9 @@ class Client(object):
             else:
                 raise ClientError("A zoneid is required if there are no characters.")
 
+        # TODO: Cache this.
+
+        print zoneid
         r = requests.get(''.join((settings.ZONESERVER, "/%s" % zoneid)), cookies=self.cookies)
         if r.status_code == 200:
             zoneurl = r.content
