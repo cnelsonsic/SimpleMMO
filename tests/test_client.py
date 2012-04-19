@@ -50,29 +50,35 @@ class TestClient(unittest.TestCase):
             server.send_signal(SIGINT)
 
     def test___init__(self):
+        '''Init the Client with no args.'''
         c = client.Client()
         self.assertTrue(c)
 
     def test___init___autoauth(self):
+        '''Init the Client with a known good user/pass combo.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(c.cookies)
         self.assertTrue(c.cookies['user'])
 
     def test___init___autoauth_bad(self):
+        '''Initting the Client with a bad user/pass combo will raise an exception. '''
         with self.assertRaises(client.AuthenticationError):
             client.Client(username="BadUser", password="BadPassword")
 
     def test_authenticate(self):
+        '''Authenticating after initting Client should work.'''
         c = client.Client()
         result = c.authenticate(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(result)
 
     def test_authenticate_bad(self):
+        '''Authenticating with bad credentials after init does not succeed.'''
         c = client.Client()
         result = c.authenticate(username='BadUser', password='BadPassword')
         self.assertFalse(result)
 
     def test_characters(self):
+        '''After authenticating, Client has a dictionary of characters.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(c.characters)
         self.assertIn('Graxnor', c.characters)
@@ -87,6 +93,7 @@ class TestClient(unittest.TestCase):
         self.assertTrue(c.get_zone('Graxnor'))
 
     def test_get_zone_url(self):
+        '''Client can get the url for our character's zone.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         zoneid = c.get_zone('Graxnor')
         zoneurl = c.get_zone_url(zoneid)
