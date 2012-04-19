@@ -13,8 +13,6 @@ authserver = None
 
 class TestClient(unittest.TestCase):
     '''An integration test for the Client class.'''
-    def setUp(self):
-        pass
 
     @classmethod
     def setUpClass(cls):
@@ -120,6 +118,18 @@ class TestClient(unittest.TestCase):
         zoneurl = c.get_zone_url()
         self.assertIn('http', zoneurl)
 
+    def test_get_zone_url_with_cache(self):
+        '''Client can get the url for our character's zone from the cache'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        zoneid = c.get_zone('Graxnor')
+        c.get_zone_url(zoneid)
+
+        expected = "Expected Zone Id"
+        c.zones[zoneid] = expected
+
+        result = c.get_zone_url(zoneid)
+        self.assertEqual(result, expected)
+
     def test_get_objects(self):
         '''Client can get the objects in our character's zone.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
@@ -141,6 +151,14 @@ class TestClient(unittest.TestCase):
         result = c.get_objects()
         self.assertTrue(c.objects)
         self.assertEqual(result, [], 'When updating that quickly, there should be no updated objects.')
+
+    def test_set_character_status(self):
+        '''Client can update its objects.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        c.get_zone_url(c.get_zone('Graxnor'))
+        c.get_objects()
+        result = c.set_character_status('Graxnor', 'online')
+        self.assertTrue(result)
 
 
 if __name__ == '__main__':
