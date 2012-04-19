@@ -50,8 +50,8 @@ ZONEENDPORT = 1400
 ZONESTARTUPTIME = 10
 DEFAULT_CHARACTER_ZONE = 'defaultzone'
 
-SUPERVISORD = 1
-SUBPROCESS = 2
+SUPERVISORD = 'supervisord' # Constant
+SUBPROCESS = 'subprocess' # Constant
 START_ZONE_WITH = SUBPROCESS
 
 # ScriptServer Settings
