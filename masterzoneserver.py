@@ -113,35 +113,8 @@ class ZoneHandler(BaseHandler):
 
             elif START_ZONE_WITH == SUBPROCESS:
                 logging.info("Starting process with subprocess.")
-                import subprocess
-                import requests
-                import sys
-                # FIXME: This stuff should be pulled from settings.
-                port = 1300
-                url = "http://localhost"
-                instancetype = 'playerinstance'
-                zonename = 'defaultzone'
-
-                while True:
-                    # Is this port already taken?
-                    try:
-                        requests.get("%s:%d" % (url, port))
-                    except requests.ConnectionError:
-                        # Port open!
-                        logging.info("Chose port %d" % port)
-                        break
-                    port += 1
-
-                args = ['zoneserver.py', '--port=%d' % port,
-                                         '--instancetype=%s' % instancetype,
-                                         '--zonename=%s' % zonename,
-                                         '--owner=%s' % owner]
-                cmd = [sys.executable]+args
-                url = "http://localhost:%d" % port
-                serverurl = url
-                logging.info("Starting %s" % ' '.join(args))
-                logging.info("Server url: %s" % serverurl)
-                s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                from start_subprocess import start_zone
+                s, serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
                 JOBS.append(s)
 
         # Wait for server to come up
@@ -168,7 +141,7 @@ class ZoneHandler(BaseHandler):
 
         # If successful, write our URL to the database and return it
         # Store useful information in the database.
-        Zone(zoneid=zoneid, port=port, owner=owner, url=serverurl)
+        Zone(zoneid=zoneid, port=serverurl.split(":")[-1], owner=owner, url=serverurl)
         session.commit()
         logging.info("Zone server came up at %s." % serverurl)
         return serverurl
