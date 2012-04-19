@@ -139,7 +139,14 @@ class Client(object):
         else:
             self.last_character = character
 
-        # TODO: Cache this.
+        # Try to just return the cached zone
+        try:
+            zone = self.characters[character].zone
+            if zone:
+                return zone
+        except (AttributeError, KeyError):
+            # Cache miss. :(
+            pass
 
         r = requests.get(''.join((settings.CHARSERVER, "/%s/zone" % character)), cookies=self.cookies)
         if r.status_code == 200:
