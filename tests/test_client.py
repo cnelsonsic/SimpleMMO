@@ -70,27 +70,42 @@ class TestClient(unittest.TestCase):
         c = client.Client()
         result = c.authenticate(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(result)
+        self.assertTrue(c.cookies['user'])
+
+    def test_authenticate_after_auth(self):
+        '''Authenticating after initting Client with auth should work.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        result = c.authenticate(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        self.assertTrue(result)
+        self.assertTrue(c.cookies['user'])
 
     def test_authenticate_bad(self):
         '''Authenticating with bad credentials after init does not succeed.'''
         c = client.Client()
         result = c.authenticate(username='BadUser', password='BadPassword')
         self.assertFalse(result)
+        self.assertFalse(c.cookies)
 
     def test_characters(self):
         '''After authenticating, Client has a dictionary of characters.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(c.characters)
         self.assertIn('Graxnor', c.characters)
-
-    def test_characters_get_obj(self):
-        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        self.assertIn('Graxnor', c.characters)
         self.assertTrue(c.characters['Graxnor'])
 
-    def test_character_obj_zone(self):
+    def test_get_zone(self):
+        '''Client can get the zone for our character.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(c.get_zone('Graxnor'))
+
+    def test_get_zone_cacheing(self):
+        '''Client can get the zone for our character from the cache.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        self.assertTrue(c.get_zone('Graxnor'))
+        expected = "Expected Zone"
+        c.characters['Graxnor'].zone = expected
+        result = c.get_zone('Graxnor')
+        self.assertEqual(result, expected)
 
     def test_get_zone_url(self):
         '''Client can get the url for our character's zone.'''
@@ -99,10 +114,33 @@ class TestClient(unittest.TestCase):
         zoneurl = c.get_zone_url(zoneid)
         self.assertIn('http', zoneurl)
 
+    def test_get_zone_url_no_args(self):
+        '''Client can get the url for the last character's zone.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        zoneurl = c.get_zone_url()
+        self.assertIn('http', zoneurl)
+
     def test_get_objects(self):
+        '''Client can get the objects in our character's zone.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         c.get_objects()
         self.assertTrue(c.objects)
+
+    def test_get_objects_verbose(self):
+        '''Client can get the objects in our character's zone, when we give it.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        zoneid = c.get_zone('Graxnor')
+        zoneurl = c.get_zone_url(zoneid)
+        c.get_objects(zoneurl)
+        self.assertTrue(c.objects)
+
+    def test_get_objects_update(self):
+        '''Client can update its objects.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        c.get_objects()
+        result = c.get_objects()
+        self.assertTrue(c.objects)
+        self.assertEqual(result, [], 'When updating that quickly, there should be no updated objects.')
 
 
 if __name__ == '__main__':
