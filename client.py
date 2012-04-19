@@ -65,19 +65,23 @@ import requests
 import settings
 
 
-class InvalidResponse(Exception):
-    def __init__(self, status_code, content):
+class ClientError(Exception):
+    pass
+
+
+class AuthenticationError(ClientError):
+    pass
+
+
+class UnexpectedHTTPStatus(ClientError):
+    def __init__(self, message, status_code, content):
+        self.message = message
         self.status_code = status_code
         self.content = content
 
     def __str__(self):
-        return "%d: %s" % (self.status_code, self.content)
+        return "%s (%d: %s)" % (self.message, self.status_code, self.content)
 
-class ClientError(Exception):
-    pass
-
-class AuthenticationError(ClientError):
-    pass
 
 def json_or_exception(response):
     '''Convert an HTTPResponse to JSON, if its status is 200 OK.
@@ -88,7 +92,7 @@ def json_or_exception(response):
         except ValueError:
             return response.content
     else:
-        raise InvalidResponse(response.status_code, response.content)
+        raise UnexpectedHTTPStatus(response.status_code, response.content)
 
 
 class Character(object):
@@ -176,7 +180,7 @@ class Client(object):
                 self.last_zone = r.content
                 return self.last_zone
         else:
-            raise ClientError("Unexpected status from MasterZoneServer: %d (%s)" % (r.status_code, r.content))
+            raise UnexpectedHTTPStatus("MasterZoneServer", r.status_code, r.content)
 
     def get_objects(self, zone=None):
         if zone is None:
@@ -195,7 +199,7 @@ class Client(object):
                 objid = obj.get('_id', {}).get('$oid')
                 self.objects[objid] = obj
         else:
-            raise ClientError("Unexpected status from ZoneServer %s: %d (%s)" % (zone, r.status_code, r.content))
+            raise UnexpectedHTTPStatus("ZoneServer %s" % zone, r.status_code, r.content)
 
         self.last_object_update = datetime.datetime.now()
         return objects
