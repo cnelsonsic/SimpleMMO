@@ -122,6 +122,9 @@ class Client(object):
     def __init__(self, username=None, password=None):
         self.characters = {}
         self.last_character = None
+
+        self.zones = {}
+
         self.last_object_update = datetime.datetime(2010, 1, 1)
         self.objects = {}
 
@@ -182,17 +185,23 @@ class Client(object):
             else:
                 raise ClientError("A zoneid is required if there are no characters.")
 
-        # TODO: Cache this.
+        # Try to just return the cached zone_url
+        try:
+            return self.zones[zoneid]
+        except KeyError:
+            # Cache miss :(
+            pass
 
-        print zoneid
         r = requests.get(''.join((settings.ZONESERVER, "/%s" % zoneid)), cookies=self.cookies)
         if r.status_code == 200:
             zoneurl = r.content
             if zoneurl == "":
                 raise ClientError("Did not get a zone URL for zoneid %s." % zoneid)
             else:
-                self.last_zone = r.content
-                return self.last_zone
+                zone = r.content
+                self.zones[zoneid] = zone
+                self.last_zone = zone
+                return zone
         else:
             raise UnexpectedHTTPStatus("MasterZoneServer", r.status_code, r.content)
 
