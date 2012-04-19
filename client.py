@@ -96,12 +96,26 @@ def json_or_exception(response):
 
 
 class Character(object):
+    _online_states = {True: 'online', False: 'offline'}
+
     def __init__(self, name):
         self.name = name
         self.zone = None
 
+        self._online = False
+
     def __repr__(self):
         return "Character(name=%r)" % (self.name,)
+
+    @property
+    def online(self):
+        return self._online
+
+    @online.setter
+    def set_online(self, value):
+        if value != self.online:
+            self._online = self._online_states.get(value, False)
+        return self._online
 
 
 class Client(object):
@@ -203,4 +217,21 @@ class Client(object):
 
         self.last_object_update = datetime.datetime.now()
         return objects
+
+    def set_character_status(self, character, status='online'):
+        try:
+            char = self.characters[character]
+        except KeyError:
+            raise ClientError("Could not find Character object in Client.")
+
+        if not char.zone:
+            raise ClientError("Unknown zone value for character. Call get_zone first.")
+
+        if char.online != status:
+            data = {'character': char.name, 'status': status}
+            r = requests.post(''.join((self.get_zone_url(char.zone), '/setstatus')), cookies=self.cookies, data=data)
+            return json_or_exception(r)
+        else:
+            # No need to update the character's status.
+            return True
 
