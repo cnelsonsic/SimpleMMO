@@ -140,7 +140,7 @@ class CharacterController(object):
         charx, chary = charobj.loc['x'], charobj.loc['y']
         for o in Object.objects(physical=True):
             # Is the distance between that object and the character less than 3?
-            if manhattan(o.loc['x'], o.loc['y'], charx, chary) < 3:
+            if o.loc and manhattan(o.loc['x'], o.loc['y'], charx, chary) < 3:
                 # We collided against something, so return now and don't
                 # save the location changes into the database.
                 return False

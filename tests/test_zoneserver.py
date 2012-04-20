@@ -171,6 +171,25 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
 
         self.assertEqual(result.loc['x'], 0)
 
+    def test_set_movement_other_loc_is_none(self):
+        '''When another object's loc is None,
+        set_movement should not die horribly.'''
+        mock_char = Mock(name="char")
+        mock_char.speed = 1
+        mock_char.loc = {'x': 0, 'y': 0, 'z': 0}
+
+        mock_bad_obj = Mock()
+        mock_bad_obj.loc = None
+
+        MockObject = Mock()
+        MockObject.objects = Mock(return_value=[mock_bad_obj])
+
+        with patch.object(zoneserver, 'Object', MockObject):
+            with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
+                result = self.character_controller.set_movement("character", 1, 2, 3)
+
+        self.assertEqual(result.loc['x'], 1)
+
     def test_set_movement_physics_collision(self):
         mock_char = Mock(name="char")
         mock_char.speed = 1
