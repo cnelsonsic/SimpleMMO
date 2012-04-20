@@ -159,6 +159,7 @@ class TestClient(unittest.TestCase):
         c.get_objects()
         result = c.set_character_status('Graxnor', 'online')
         self.assertTrue(result)
+        self.assertTrue(c.characters['Graxnor'].online)
 
 
 if __name__ == '__main__':
