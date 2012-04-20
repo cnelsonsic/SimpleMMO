@@ -132,14 +132,13 @@ class Client(object):
         if username and password:
             if not self.authenticate(username=username, password=password):
                 raise AuthenticationError("Authentication failed with credentials: '%s':'%s'" % (username, password))
-            else:
-                self._populate_characters()
 
     def authenticate(self, username, password):
         data = {"username": username, "password": password}
         r = requests.post(''.join((settings.AUTHSERVER, "/login")), data=data)
         if r.status_code == 200:
             self.cookies.update(r.cookies)
+            self._populate_characters()
             return True
         elif r.status_code == 401:
             self.cookies = {}
