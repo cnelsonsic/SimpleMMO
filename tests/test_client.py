@@ -69,6 +69,7 @@ class TestClient(unittest.TestCase):
         result = c.authenticate(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(result)
         self.assertTrue(c.cookies['user'])
+        self.assertTrue(c.characters)
 
     def test_authenticate_after_auth(self):
         '''Authenticating after initting Client with auth should work.'''
