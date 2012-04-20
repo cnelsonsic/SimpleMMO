@@ -249,3 +249,24 @@ class Client(object):
             # No need to update the character's status.
             return True
 
+    def move_character(self, character=None, xmod=0, ymod=0, zmod=0):
+        if not character:
+            # No character passed, grab the first one.
+            character = self.last_character
+
+        try:
+            char = self.characters[character]
+        except KeyError:
+            raise ClientError("Could not find Character object in Client.")
+
+        if char.online != True:
+            raise ClientError("Cannot move character, not online: %s" % char.online)
+
+        data = {'character': char.name, 'x': xmod, 'y': ymod, 'z': zmod}
+        r = requests.post(''.join((self.get_zone_url(char.zone), '/movement')), cookies=self.cookies, data=data)
+        content = json_or_exception(r)
+        if content is True:
+            return True
+        else:
+            # Could not move. Probably due to collision.
+            return content
