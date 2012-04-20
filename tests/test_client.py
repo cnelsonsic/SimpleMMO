@@ -1,5 +1,9 @@
 #!/usr/bin/env python2.7
 import unittest
+import subprocess
+import requests
+from collections import OrderedDict
+from signal import SIGINT
 
 import sys
 sys.path.append(".")
@@ -8,28 +12,22 @@ import settings
 
 import client
 
-authserver = None
-
 
 class TestClient(unittest.TestCase):
     '''An integration test for the Client class.'''
 
     @classmethod
     def setUpClass(cls):
-        # Fire up a server to test against.
-        import subprocess
-        import requests
+        # Fire up servers to test against.
         cls.servers = []
-        from collections import OrderedDict
         servers = OrderedDict()
+        servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=./mongodb-unittest/']
         servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=sqlite://']
         servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=sqlite://']
-        servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=./mongodb-unittest/']
         servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=sqlite://']
         for uri, args in servers.iteritems():
             if sys.executable in args:
                 args.extend(['--log-file-prefix=log/%s.log' % args[1], '--logging=info'])
-            print "Starting %s at %s" % (' '.join(args), uri)
             cmd = args
             s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             cls.servers.append(s)
@@ -43,7 +41,6 @@ class TestClient(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        from signal import SIGINT
         for server in cls.servers:
             server.send_signal(SIGINT)
 
