@@ -269,3 +269,47 @@ class Client(object):
         else:
             # Could not move. Probably due to collision.
             return content
+
+def main(ticks=10):
+    c = Client()
+
+    # Authenticate.
+    from settings import DEFAULT_USERNAME, DEFAULT_PASSWORD
+    if c.authenticate(DEFAULT_USERNAME, DEFAULT_PASSWORD) is True:
+        print "authenticated"
+
+    # Freakin' automatic.
+    print "Got %s as characters." % c.characters
+
+    character = c.characters.keys()[0]
+    zone = c.get_zone(character)
+    print "Got %r as zone." % zone
+
+    zoneserver = c.get_zone_url(zone)
+    print "Got %s as zone url." % zoneserver
+
+    objects = c.get_objects()
+    import pprint
+    print pprint.pprint(objects)
+    print "Got %d objects from the server." % len(objects)
+
+    if c.set_character_status(character, 'online'):
+        print "Set status in the zone to online."
+
+    c.move_character(character)
+    print "Sent our first movement packet to make sure we show up."
+
+    from random import randint
+    import time
+    total_ticks = 0
+    while total_ticks < ticks:
+        print "Tick"
+        c.move_character(character, xmod=randint(-1, 1), ymod=randint(-1, 1))
+        newobjs = c.get_objects()
+        print "Got %d new objects since our last update." % len(newobjs)
+        total_ticks += 1
+        time.sleep(.5)
+    return True
+
+if __name__ == "__main__":
+    main()
