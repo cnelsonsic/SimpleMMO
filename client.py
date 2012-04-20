@@ -96,7 +96,7 @@ def json_or_exception(response, message='Got an unexpected response.'):
 
 
 class Character(object):
-    _online_states = {True: 'online', False: 'offline'}
+    _online_states = {'online': True, 'offline': False}
 
     def __init__(self, name):
         self.name = name
