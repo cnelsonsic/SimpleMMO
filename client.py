@@ -83,7 +83,7 @@ class UnexpectedHTTPStatus(ClientError):
         return "%s (%d: %s)" % (self.message, self.status_code, self.content)
 
 
-def json_or_exception(response):
+def json_or_exception(response, message='Got an unexpected response.'):
     '''Convert an HTTPResponse to JSON, if its status is 200 OK.
     Otherwise, raise an exception.'''
     if response.status_code == 200:
@@ -92,7 +92,7 @@ def json_or_exception(response):
         except ValueError:
             return response.content
     else:
-        raise UnexpectedHTTPStatus(response.status_code, response.content)
+        raise UnexpectedHTTPStatus(message, response.status_code, response.content)
 
 
 class Character(object):
