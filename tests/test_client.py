@@ -161,6 +161,25 @@ class TestClient(unittest.TestCase):
         self.assertTrue(result)
         self.assertTrue(c.characters['Graxnor'].online)
 
+    def test_move_character(self):
+        '''Client can move a character.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        character = 'Graxnor'
+        c.get_zone(character)
+        c.set_character_status(character, 'online')
+        result = c.move_character(character, 100, 100, 100)
+
+        self.assertTrue(result)
+
+    def test_move_character_bump(self):
+        '''Client can try to move a character, but fail due to physics.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        character = 'Graxnor'
+        c.get_zone(character)
+        c.set_character_status(character, 'online')
+        result = c.move_character(character)
+
+        self.assertFalse(result)
 
 if __name__ == '__main__':
     unittest.main()
