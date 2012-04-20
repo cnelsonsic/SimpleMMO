@@ -226,7 +226,18 @@ class MovementHandler(BaseHandler):
         zmod = int(self.get_argument('z', 0))
         logging.info("Locmod is: %d, %d, %d" % (xmod, ymod, zmod))
 
-        return self.char_controller.set_movement(character, xmod, ymod, zmod, user=user)
+        result = self.char_controller.set_movement(character, xmod, ymod, zmod, user=user)
+
+        logging.info("Tried to set movement, result was: %s" % result)
+
+        # If our result is a mongo object, make it dumpable:
+        if hasattr(result, 'to_mongo'):
+            result = result.to_mongo()
+
+        retval = json.dumps(result, default=json_util.default)
+
+        self.content_type = 'application/json'
+        self.write(retval)
 
 
 # TODO: A char movement handler token handler, which gives the user a token to use.
