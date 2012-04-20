@@ -18,6 +18,9 @@ class TestClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Set the default character name.
+        cls.character = 'Graxnor'
+
         # Fire up servers to test against.
         cls.servers = []
         servers = OrderedDict()
@@ -85,27 +88,27 @@ class TestClient(unittest.TestCase):
         '''After authenticating, Client has a dictionary of characters.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         self.assertTrue(c.characters)
-        self.assertIn('Graxnor', c.characters)
-        self.assertTrue(c.characters['Graxnor'])
+        self.assertIn(self.character, c.characters)
+        self.assertTrue(c.characters[self.character])
 
     def test_get_zone(self):
         '''Client can get the zone for our character.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        self.assertTrue(c.get_zone('Graxnor'))
+        self.assertTrue(c.get_zone(self.character))
 
     def test_get_zone_cacheing(self):
         '''Client can get the zone for our character from the cache.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        self.assertTrue(c.get_zone('Graxnor'))
+        self.assertTrue(c.get_zone(self.character))
         expected = "Expected Zone"
-        c.characters['Graxnor'].zone = expected
-        result = c.get_zone('Graxnor')
+        c.characters[self.character].zone = expected
+        result = c.get_zone(self.character)
         self.assertEqual(result, expected)
 
     def test_get_zone_url(self):
         '''Client can get the url for our character's zone.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        zoneid = c.get_zone('Graxnor')
+        zoneid = c.get_zone(self.character)
         zoneurl = c.get_zone_url(zoneid)
         self.assertIn('http', zoneurl)
 
@@ -118,7 +121,7 @@ class TestClient(unittest.TestCase):
     def test_get_zone_url_with_cache(self):
         '''Client can get the url for our character's zone from the cache'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        zoneid = c.get_zone('Graxnor')
+        zoneid = c.get_zone(self.character)
         c.get_zone_url(zoneid)
 
         expected = "Expected Zone Id"
@@ -136,7 +139,7 @@ class TestClient(unittest.TestCase):
     def test_get_objects_verbose(self):
         '''Client can get the objects in our character's zone, when we give it.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        zoneid = c.get_zone('Graxnor')
+        zoneid = c.get_zone(self.character)
         zoneurl = c.get_zone_url(zoneid)
         c.get_objects(zoneurl)
         self.assertTrue(c.objects)
@@ -152,16 +155,16 @@ class TestClient(unittest.TestCase):
     def test_set_character_status(self):
         '''Client can update its objects.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        c.get_zone_url(c.get_zone('Graxnor'))
+        c.get_zone_url(c.get_zone(self.character))
         c.get_objects()
-        result = c.set_character_status('Graxnor', 'online')
+        result = c.set_character_status(self.character, 'online')
         self.assertTrue(result)
-        self.assertTrue(c.characters['Graxnor'].online)
+        self.assertTrue(c.characters[self.character].online)
 
     def test_move_character(self):
         '''Client can move a character.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        character = 'Graxnor'
+        character = self.character
         c.get_zone(character)
         c.set_character_status(character, 'online')
         result = c.move_character(character, 100, 100, 100)
@@ -171,7 +174,7 @@ class TestClient(unittest.TestCase):
     def test_move_character_bump(self):
         '''Client can try to move a character, but fail due to physics.'''
         c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        character = 'Graxnor'
+        character = self.character
         c.get_zone(character)
         c.set_character_status(character, 'online')
         result = c.move_character(character)
