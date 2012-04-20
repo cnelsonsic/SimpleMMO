@@ -112,7 +112,7 @@ class Character(object):
         return self._online
 
     @online.setter
-    def set_online(self, value):
+    def online(self, value):
         if value != self.online:
             self._online = self._online_states.get(value, False)
         return self._online
@@ -239,7 +239,12 @@ class Client(object):
         if char.online != status:
             data = {'character': char.name, 'status': status}
             r = requests.post(''.join((self.get_zone_url(char.zone), '/setstatus')), cookies=self.cookies, data=data)
-            return json_or_exception(r)
+            result = json_or_exception(r)
+            if result is True:
+                char.online = status
+                return True
+            elif result is False:
+                raise ClientError('Setting status %s failed.' % status)
         else:
             # No need to update the character's status.
             return True
