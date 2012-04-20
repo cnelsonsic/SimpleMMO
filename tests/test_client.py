@@ -182,5 +182,8 @@ class TestClient(unittest.TestCase):
 
         self.assertFalse(result)
 
+    def test_main(self):
+        self.assertTrue(client.main(ticks=5))
+
 if __name__ == '__main__':
     unittest.main()
