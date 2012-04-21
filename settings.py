@@ -39,7 +39,14 @@ import subprocess
 COOKIE_SECRET = subprocess.check_output('git rev-parse HEAD', shell=True).strip()
 
 # Sentry DSN - Needs set up for your instance of Sentry
-SENTRY_DSN = 'http://1a5305df80434b039a6e5030116b4c96:28ce65222ae34a87b8a5c52a5d165c7d@localhost:9000/1'
+SENTRY = True
+SENTRY_LOG = False # Sending log entries to sentry is slow and high-volume.
+SENTRY_PORT = 9000
+SENTRY_PUBLIC = '1a5305df80434b039a6e5030116b4c96'
+SENTRY_PRIVATE = '28ce65222ae34a87b8a5c52a5d165c7d'
+SENTRY_SERVER = _server_str % (PROTOCOL, HOSTNAME, SENTRY_PORT)
+_dsn = "%s:%s@%s" % (SENTRY_PUBLIC, SENTRY_PRIVATE, HOSTNAME)
+SENTRY_DSN = _server_str % (PROTOCOL, _dsn, 9000) + '/1'
 
 # AGPL Stuff
 AGPL_STRING = "BEGIN AGPL LICENSE BLOCK"
