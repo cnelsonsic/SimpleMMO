@@ -19,7 +19,7 @@
 #
 # ##### END AGPL LICENSE BLOCK #####
 
-from settings import *
+import settings
 
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
@@ -91,7 +91,7 @@ class SelfServe(BaseHandler):
         z = ZipFile(outfile, "w")
         for root, dirs, files in os.walk("."):
             skip = False
-            for no in SKIP_FOLDERS:
+            for no in settings.SKIP_FOLDERS:
                 if no in root:
                     skip = True
                     break
@@ -101,7 +101,7 @@ class SelfServe(BaseHandler):
             for filename in files:
                 # Search them all for "BEGIN AGPL LICENSE BLOCK"
                 print "Searching %s" % os.path.join(root, filename)
-                if AGPL_STRING in open(os.path.join(root, filename), "r").read():
+                if settings.AGPL_STRING in open(os.path.join(root, filename), "r").read():
                     print "Added %s to archive." % filename
                     z.write(os.path.join(root, filename))
         z.close()
@@ -118,10 +118,11 @@ class BaseServer(Application):
         '''Expects a list of tuple handlers like:
                 [(r"/", MainHandler), (r"/chatsocket", ChatSocketHandler),]
         '''
-        settings = {
-#                 "cookie_secret": ''.join([chr(randint(32, 126)) for _ in xrange(75)]),
-                "cookie_secret": COOKIE_SECRET,
-                "login_url": ''.join((PROTOCOL, "://", HOSTNAME, ":", str(AUTHSERVERPORT), "/login")),
+        url = settings._server_str % (settings.PROTOCOL, settings.HOSTNAME, settings.AUTHSERVERPORT)
+
+        app_settings = {
+                "cookie_secret": settings.COOKIE_SECRET,
+                "login_url": ''.join((url, "/login")),
                 }
 
         handlers = []
@@ -130,7 +131,7 @@ class BaseServer(Application):
 
         handlers.extend(extra_handlers)
 
-        Application.__init__(self, handlers, debug=True, **settings)
+        Application.__init__(self, handlers, debug=True, **app_settings)
 
     def start(self):
         import tornado.options
