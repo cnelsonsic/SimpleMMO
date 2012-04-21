@@ -6,3 +6,5 @@ mongoengine
 pymunk
 supervisor
 supervisor-twiddler
+raven
+sentry
