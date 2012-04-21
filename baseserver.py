@@ -30,7 +30,11 @@ try:
         from raven import Client
 
         import requests
-        sentry_up = 'Sentry' in requests.get(settings.SENTRY_SERVER).content
+        try:
+            r = requests.get(settings.SENTRY_SERVER)
+            sentry_up = 'Sentry' in r.content
+        except requests.ConnectionError:
+            sentry_up = False
 
         if sentry_up:
             client = Client(settings.SENTRY_DSN)
