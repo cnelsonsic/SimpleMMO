@@ -24,16 +24,23 @@ import settings
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
 
+client = False
 try:
-    from raven import Client
-    from raven.handlers.logging import SentryHandler
-    from raven.conf import setup_logging
+    if settings.SENTRY:
+        from raven import Client
 
-    client = Client(SENTRY_DSN)
-    handler = SentryHandler(client)
-    setup_logging(handler)
+        import requests
+        sentry_up = 'Sentry' in requests.get(settings.SENTRY_SERVER).content
+
+        if sentry_up:
+            client = Client(settings.SENTRY_DSN)
+            if settings.SENTRY_LOG:
+                from raven.handlers.logging import SentryHandler
+                from raven.conf import setup_logging
+                handler = SentryHandler(client)
+                setup_logging(handler)
+
 except ImportError:
-    client = False
     print "Set up Sentry for consolidated logging and error reporting!"
 
 
