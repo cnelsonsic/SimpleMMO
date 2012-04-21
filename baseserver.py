@@ -19,15 +19,30 @@
 #
 # ##### END AGPL LICENSE BLOCK #####
 
-from random import randint
-import subprocess
-
 from settings import *
 
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
 
+try:
+    from raven import Client
+    from raven.handlers.logging import SentryHandler
+    from raven.conf import setup_logging
+
+    client = Client(SENTRY_DSN)
+    handler = SentryHandler(client)
+    setup_logging(handler)
+except ImportError:
+    client = False
+    print "Set up Sentry for consolidated logging and error reporting!"
+
+
 class BaseHandler(RequestHandler):
+    def _handle_request_exception(self, e):
+        if client:
+            client.captureException()
+        RequestHandler._handle_request_exception(self, e)
+
     def get_login_url(self):
         return u"/login"
 
