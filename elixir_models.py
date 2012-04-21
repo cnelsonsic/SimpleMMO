@@ -77,7 +77,7 @@ class Message(Entity):
     channel = Field(Integer, unique=True)
     body = Field(UnicodeText, default=u'')
 
-def setup(db_uri='sqlite:///simplemmo.sqlite', echo=True):
+def setup(db_uri='sqlite:///simplemmo.sqlite', echo=False):
     metadata.bind = db_uri
     metadata.bind.echo = echo
     setup_all()
