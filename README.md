@@ -14,6 +14,7 @@ followed by
     sudo easy_install -U pip
 
 You'll need to use pip to install the required python packages:
+
     sudo pip install -r requirements.txt
 
 SimpleMMO uses supervisor to control its server processes, so you will need to
