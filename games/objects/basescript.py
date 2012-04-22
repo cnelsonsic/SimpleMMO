@@ -64,7 +64,7 @@ class Script(object):
         ourx, oury = self.me_obj.loc['x'], self.me_obj.loc['y']
         for o in Object.objects(physical=True):
             # Is the distance between that object and the character less than 3?
-            if manhattan(o.loc['x'], o.loc['y'], ourx, oury) < 1:
+            if o.loc and manhattan(o.loc['x'], o.loc['y'], ourx, oury) < 1:
                 # We collided against something, so return now and don't
                 # save the location changes into the database.
                 return False
