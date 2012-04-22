@@ -153,15 +153,11 @@ class Client(object):
                 self.last_character = charname
 
     def get_zone(self, character=None):
-        if not character:
-            # No character passed, grab the first one.
-            character = self.last_character
-        else:
-            self.last_character = character
+        char = self.get_char_obj(character_name=character)
 
         # Try to just return the cached zone
         try:
-            zone = self.characters[character].zone
+            zone = char.zone
             if zone:
                 return zone
         except (AttributeError, KeyError):
@@ -227,10 +223,7 @@ class Client(object):
         return objects
 
     def set_character_status(self, character, status='online'):
-        try:
-            char = self.characters[character]
-        except KeyError:
-            raise ClientError("Could not find Character object in Client.")
+        char = self.get_char_obj(character_name=character)
 
         if not char.zone:
             raise ClientError("Unknown zone value for character. Call get_zone first.")
@@ -249,14 +242,7 @@ class Client(object):
             return True
 
     def move_character(self, character=None, xmod=0, ymod=0, zmod=0):
-        if not character:
-            # No character passed, grab the first one.
-            character = self.last_character
-
-        try:
-            char = self.characters[character]
-        except KeyError:
-            raise ClientError("Could not find Character object in Client.")
+        char = self.get_char_obj(character_name=character)
 
         if char.online != True:
             raise ClientError("Cannot move character, not online: %s" % char.online)
@@ -269,6 +255,23 @@ class Client(object):
         else:
             # Could not move. Probably due to collision.
             return content
+
+    def get_char_obj(self, character_name):
+        if not character_name:
+            # No character passed, grab the first one.
+            character_name = self.last_character
+
+        try:
+            char = self.characters[character_name]
+        except KeyError:
+            raise ClientError("Could not find Character object in Client.")
+
+        return char
+
+    def set_online(self, character):
+        self.set_character_status(character, 'online')
+        self.move_character(character)
+
 
 def main(ticks=10):
     c = Client()
