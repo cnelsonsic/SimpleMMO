@@ -54,6 +54,7 @@ The magic is that when it can't find a URL for a zoneid, it starts up a ZoneServ
 when a zone-id isn't found.
 
 ### ZoneServer
+ZoneServers get started by the MasterZoneServer automatically.
 The ZoneServers accept requests for a given set of world data.
 They are the actual areas where characters roam about and do game things.
 There are also zone-limited chat and private messages.
