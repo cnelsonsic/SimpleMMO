@@ -1,9 +1,5 @@
 #!/usr/bin/env python2.7
 import unittest
-import subprocess
-import requests
-from collections import OrderedDict
-from signal import SIGINT
 
 import sys
 sys.path.append(".")
@@ -12,40 +8,17 @@ import settings
 
 import client
 
+from integration_base import IntegrationBase
 
-class TestClient(unittest.TestCase):
-    '''An integration test for the Client class.'''
+class TestClient(IntegrationBase):
 
     @classmethod
     def setUpClass(cls):
+        # Calling the supermethod so that we get servers.
+        super(TestClient, cls).setUpClass()
+
         # Set the default character name.
         cls.character = 'Graxnor'
-
-        # Fire up servers to test against.
-        cls.servers = []
-        servers = OrderedDict()
-        servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=./mongodb-unittest/']
-        servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=sqlite://']
-        servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=sqlite://']
-        servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=sqlite://']
-        for uri, args in servers.iteritems():
-            if sys.executable in args:
-                args.extend(['--log-file-prefix=log/%s.log' % args[1], '--logging=info'])
-            cmd = args
-            s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            cls.servers.append(s)
-            status = None
-            while status != 200:
-                try:
-                    r = requests.get(uri)
-                    status = r.status_code
-                except requests.ConnectionError:
-                    continue
-
-    @classmethod
-    def tearDownClass(cls):
-        for server in cls.servers:
-            server.send_signal(SIGINT)
 
     def test___init__(self):
         '''Init the Client with no args.'''
