@@ -164,11 +164,13 @@ class Client(object):
             # Cache miss. :(
             pass
 
-        r = requests.get(''.join((settings.CHARSERVER, "/%s/zone" % character)), cookies=self.cookies)
+        url = ''.join((settings.CHARSERVER, "/%s/zone" % char.name))
+        r = requests.get(url, cookies=self.cookies)
         if r.status_code == 200:
             data = json.loads(r.content)
             zone = data.get('zone')
-            self.characters[character].zone = zone
+            char.zone = zone
+            self.characters[char.name].zone = zone
             return zone
 
     def get_zone_url(self, zoneid=None):
@@ -271,6 +273,17 @@ class Client(object):
     def set_online(self, character):
         self.set_character_status(character, 'online')
         self.move_character(character)
+
+    def activate(self, object_id, character=None):
+        '''Activate (click) an object by its id.'''
+        char = self.get_char_obj(character)
+        data = {'character': char.name}
+        r = requests.post(''.join((self.get_zone_url(char.zone), '/activate/%s' % object_id)), cookies=self.cookies, data=data)
+        content = json_or_exception(r)
+        if content is True:
+            return True
+        else:
+            raise ClientError("Could not activate object %s. Content was: %s" % (object_id, content))
 
 
 def main(ticks=10):
