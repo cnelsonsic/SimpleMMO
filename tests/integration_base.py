@@ -21,7 +21,8 @@ class IntegrationBase(unittest.TestCase):
         cls.servers = []
         servers = OrderedDict()
         cls.mongodb_dir = './mongodb-unittest/'
-        os.mkdir(cls.mongodb_dir)
+        if not os.path.exists(cls.mongodb_dir):
+            os.mkdir(cls.mongodb_dir)
         servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=%s' % cls.mongodb_dir]
         servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=sqlite://']
         servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=sqlite://']
