@@ -44,6 +44,7 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
                                 '--instancetype=%s' % instancetype,
                                 '--zonename=%s' % zonename,
                                 '--owner=%s' % owner]
+    args.extend(['--log-file-prefix=log/%s-%s.log' % (args[0], '-'.join((instancetype, zonename, owner))), '--logging=info'])
     cmd = [sys.executable]+args
     logging.info("Starting %s" % ' '.join(args))
     logging.info("Server url: %s" % url)
