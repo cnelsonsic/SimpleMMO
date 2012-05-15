@@ -1,14 +1,14 @@
-tornado
-elixir
-requests
+tornado==2.2.1
+Elixir==0.7.1
+requests==0.12.1
 
 pymongo==2.1.1 #v2.2 deprecates pymongo.json_util in favor of bson.json_util, which is apparently broken.
-mongoengine
+mongoengine==0.6.9
 
-pymunk
+pymunk==2.1.0
 
-supervisor
-supervisor-twiddler
+supervisor==3.0a12
+supervisor-twiddler==0.4
 
-raven
-sentry
+raven==1.7.6
+sentry==4.2.5
