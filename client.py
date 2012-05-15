@@ -137,7 +137,7 @@ class Client(object):
         data = {"username": username, "password": password}
         r = requests.post(''.join((settings.AUTHSERVER, "/login")), data=data)
         if r.status_code == 200:
-            self.cookies.update(r.cookies)
+            self.cookies.update({'user': r.cookies.get('user')})
             self._populate_characters()
             return True
         elif r.status_code == 401:
