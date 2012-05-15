@@ -1,11 +1,14 @@
 tornado
 elixir
 requests
-pymongo
+
+pymongo==2.1.1 #v2.2 deprecates pymongo.json_util in favor of bson.json_util, which is apparently broken.
 mongoengine
-bson
+
 pymunk
+
 supervisor
 supervisor-twiddler
+
 raven
 sentry
