@@ -45,7 +45,7 @@ define("zonename", default='defaultzone', help="Specify what zone to load from d
 define("instancetype", default='playerinstance', help="Specify what type of zone this is.", type=str)
 define("owner", default='None', help="Specify who owns this zone.", type=str)
 
-from pymongo import json_util
+from bson import json_util
 
 import mongoengine as me
 

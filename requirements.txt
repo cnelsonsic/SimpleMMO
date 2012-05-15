@@ -3,6 +3,7 @@ elixir
 requests
 pymongo
 mongoengine
+bson
 pymunk
 supervisor
 supervisor-twiddler
