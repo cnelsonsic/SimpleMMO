@@ -284,6 +284,43 @@ class AdminHandler(BaseHandler):
         else:
             raise tornado.web.HTTPError(403)
 
+class MessageHandler(BaseHandler):
+    pass
+
+class ScriptedObjectHandler(BaseHandler):
+    @tornado.web.authenticated
+    def post(self, object_id):
+        character = self.get_argument('character', '')
+        retval = self.activate_object(object_id, character)
+        if not retval:
+            retval = False
+        self.write(json.dumps(False))
+
+    def activate_object(self, object_id, character):
+        # Instantiate the scripted object and call its activate thing.
+        from mongoengine_models import ScriptedObject
+        from games.objects.basescript import Script
+
+        retval = []
+        for o in ScriptedObject.objects(id=object_id):
+            # TODO: Break this block into a method.
+            for script in o.scripts:
+                scriptclass = script.split('.')[-1]
+                module = __import__(script, globals(), locals(), [scriptclass], -1)
+                # For each entry in the script's dir()
+                for key in dir(module):
+                    C = getattr(module, key)
+                    try:
+                        if not issubclass(C, Script):
+                            # If it isn't a subclass of Script, skip it.
+                            continue
+                    except TypeError:
+                        # If C isn't a class at all, skip it.
+                        continue
+
+                    # Finally activate the script.
+                    retval.append(C(o).activate(character))
+        return retval
 
 def main():
     tornado.options.parse_command_line()
@@ -323,6 +360,7 @@ def main():
     handlers.append((r"/setstatus", CharStatusHandler))
     handlers.append((r"/movement", MovementHandler))
     handlers.append((r"/admin", AdminHandler))
+    handlers.append((r"/activate/(.*)", ScriptedObjectHandler))
 
     server = BaseServer(handlers)
     server.listen(port)
