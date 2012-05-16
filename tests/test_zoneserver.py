@@ -30,7 +30,7 @@ import sys
 sys.path.append(".")
 
 import zoneserver
-from zoneserver import ObjectsHandler, MovementHandler, CharacterController
+from zoneserver import ObjectsHandler, MovementHandler, CharacterController, ScriptedObjectHandler
 
 class TestCharacterControllerGetCharacter(unittest.TestCase):
     def setUp(self):
@@ -308,6 +308,37 @@ class TestAdminHandler(unittest.TestCase):
         # admin_handler = AdminHandler(*args, **kwargs)
         # self.assertEqual(expected, admin_handler.post())
         self.skipTest("Not Implemented.")
+
+class TestScriptedObjectHandler(unittest.TestCase):
+    def setUp(self):
+        self.app = Application([('/', ScriptedObjectHandler),])
+        self.req = Mock()
+        self.scripted_object_handler = ScriptedObjectHandler(self.app, self.req)
+
+    def test_activate_object(self):
+        mock_scripted_object = Mock()
+        mock_scripted_object.scripts = ['games.objects.testscript']
+
+        expected = [mock_scripted_object]
+
+        MockScriptedObject = Mock()
+        MockScriptedObject.objects.return_value = expected
+
+        from games.objects.basescript import Script
+
+        # Define a test class here because making Mock pass an issubclass
+        # is a huge pain.
+        class MyScript(Script):
+            def activate(self, character):
+                return expected[0]
+
+        MockScriptModule = Mock(MyScript=MyScript, name='testscript')
+
+        with patch.object(zoneserver, 'ScriptedObject', MockScriptedObject):
+            with patch.dict('sys.modules', {'games.objects.testscript': MockScriptModule}):
+                result = self.scripted_object_handler.activate_object(None, None)
+
+        self.assertEqual(expected, result)
 
 class TestMain(unittest.TestCase):
     def test_main(self):

@@ -54,6 +54,9 @@ class Script(object):
     def tick(self):
         pass
 
+    def activate(self, character):
+        pass
+
     def move(self, xmod, ymod, zmod):
         self.me_obj.loc['x'] += xmod
         self.me_obj.loc['y'] += ymod

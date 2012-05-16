@@ -49,7 +49,9 @@ from pymongo import json_util
 
 import mongoengine as me
 
-from mongoengine_models import Character, Object, IntVector
+from mongoengine_models import Character, Object, IntVector, ScriptedObject
+from games.objects.basescript import Script
+
 
 class CharacterController(object):
     '''A controller for mongo character objects.'''
@@ -298,9 +300,6 @@ class ScriptedObjectHandler(BaseHandler):
 
     def activate_object(self, object_id, character):
         # Instantiate the scripted object and call its activate thing.
-        from mongoengine_models import ScriptedObject
-        from games.objects.basescript import Script
-
         retval = []
         for o in ScriptedObject.objects(id=object_id):
             # TODO: Break this block into a method.
