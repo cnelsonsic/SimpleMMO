@@ -6,6 +6,10 @@ Vagrant::Config.run do |config|
   config.vm.box_url = "http://files.vagrantup.com/precise32.box"
   config.vm.forward_port 1234, 1234
 
+  config.vm.network :hostonly, "33.33.33.10"
+
+  config.vm.customize ["modifyvm", :id, "--memory", "1024"]
+
   # config.vm.share_folder "v-data", "/vagrant_data", "../data"
 
   config.vm.provision :puppet do |puppet|
