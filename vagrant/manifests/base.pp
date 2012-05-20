@@ -29,8 +29,10 @@ service { 'mongodb':
 exec { 'git clone git://github.com/cnelsonsic/SimpleMMO.git':
     cwd     => '/home/vagrant',
     path    => $::path,
-    creates => '/home/vagrant/SimpleMMO/',
-    refresh => 'cd /home/vagrant/SimpleMMO/; git pull',
+    creates => '/home/vagrant/SimpleMMO/.git/',
+    logoutput => true,
+    refresh => 'git reset --hard HEAD; git pull',
+    unless  => 'test `git pull`',
     require => Package['git'],
 }
 
