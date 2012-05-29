@@ -296,7 +296,7 @@ class ScriptedObjectHandler(BaseHandler):
         retval = self.activate_object(object_id, character)
         if not retval:
             retval = False
-        self.write(json.dumps(False))
+        self.write(json.dumps(retval))
 
     def activate_object(self, object_id, character):
         # Instantiate the scripted object and call its activate thing.
@@ -318,7 +318,13 @@ class ScriptedObjectHandler(BaseHandler):
                         continue
 
                     # Finally activate the script.
-                    retval.append(C(o).activate(character))
+                    script_val = C(o).activate(character)
+                    if script_val:
+                        # Only return it if the script actually returns something.
+                        # So clients should only react to activating scripts that
+                        # return something meaningful.
+                        retval.append(script_val)
+
         return retval
 
 def main():

@@ -158,5 +158,28 @@ class TestClient(IntegrationBase):
     def test_main(self):
         self.assertTrue(client.main(ticks=5))
 
+    def test_activation(self):
+        '''Client can activate an object.'''
+        c = client.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        character = self.character
+        print "testing using ", character
+        # Override the character's zone:
+        zone = 'playerinstance-AdventureDungeon-%s' % character
+        c.characters[character].zone = zone
+        c.set_online(character)
+
+        c.get_objects()
+
+        linnea = None
+        for obj_id, obj in c.objects.iteritems():
+            if obj.get('name') == 'Linnea':
+                linnea = obj
+                linnea_id = obj.get('_id', {}).get('$oid')
+                break
+
+        self.assertTrue(linnea)
+        self.assertTrue(c.activate(linnea_id))
+
+
 if __name__ == '__main__':
     unittest.main()

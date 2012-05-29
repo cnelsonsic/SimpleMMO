@@ -208,7 +208,8 @@ class Client(object):
 
         if "http://" not in zone:
             # zone is probably a zoneid
-            zone = self.zone(zone)
+            zone = self.zones.get(zone)
+
 
         data = {"since": self.last_object_update.strftime(settings.DATETIME_FORMAT)}
         r = requests.get(''.join((zone, '/objects')), cookies=self.cookies, params=data)
@@ -273,6 +274,7 @@ class Client(object):
     def set_online(self, character):
         self.set_character_status(character, 'online')
         self.move_character(character)
+        self.last_character = character
 
     def activate(self, object_id, character=None):
         '''Activate (click) an object by its id.'''
@@ -280,7 +282,7 @@ class Client(object):
         data = {'character': char.name}
         r = requests.post(''.join((self.get_zone_url(char.zone), '/activate/%s' % object_id)), cookies=self.cookies, data=data)
         content = json_or_exception(r)
-        if content is True:
+        if content:
             return True
         else:
             raise ClientError("Could not activate object %s. Content was: %s" % (object_id, content))

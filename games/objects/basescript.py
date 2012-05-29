@@ -24,6 +24,18 @@ class Script(object):
         self.me_obj = mongo_engine_object
         print "Initted with %s" % self.me_obj
 
+    def create(self):
+        '''Create this Script's ScriptedObject database object.'''
+        pass
+
+    def activate(self, *args, **kwargs):
+        '''Do something when the scripted object is activated/clicked/etc.
+        Script.tick() and Script.activate() are not usually called from
+        the same instance.
+        Do not rely on saved instance state. Store it in the database.
+        '''
+        pass
+
     def roll(self, dicestring):
         '''Roll dice specified by dicestring and return the value.
         Does not allow more dice than the MAX_DICE_AMOUNT setting
@@ -52,9 +64,6 @@ class Script(object):
         self.say(random.choice(sayings))
 
     def tick(self):
-        pass
-
-    def activate(self, character):
         pass
 
     def move(self, xmod, ymod, zmod):
