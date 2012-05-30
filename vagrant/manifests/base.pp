@@ -14,7 +14,8 @@ package { [
     'mongodb',
     'vim',
     ]:
-    ensure => 'latest';
+    ensure   => 'latest',
+    provider => 'aptitude';
 }
 
 # Stop the mongod service, SimpleMMO starts its own.
@@ -37,29 +38,32 @@ exec { 'git clone git://github.com/cnelsonsic/SimpleMMO.git':
 }
 
 # Install the requirements.
-package {
-    'Elixir':
-        ensure => '0.7.1';
-    'sentry':
-        ensure => '4.2.5';
-    'raven':
-        ensure => '1.7.6';
-    'mock':
-        ensure => '0.8';
-    'pymongo':
-        ensure => '2.1.1';
-    'mongoengine':
-        ensure => '0.6.9';
-    'pymunk':
-        ensure => '2.1.0';
-    'requests':
-        ensure => '0.12.1';
-    'supervisor':
-        ensure => '3.0a12';
-    'supervisor_twiddler':
-        ensure => '0.4';
-    'tornado':
-        ensure => '2.2.1';
+class pip {
+    Package { provider => "pip" }
+    package {
+        'Elixir':
+            ensure => '0.7.1';
+        'sentry':
+            ensure => '4.2.5';
+        'raven':
+            ensure => '1.7.6';
+        'mock':
+            ensure => '0.8';
+        'pymongo':
+            ensure => '2.1.1';
+        'mongoengine':
+            ensure => '0.6.9';
+        'pymunk':
+            ensure => '2.1.0';
+        'requests':
+            ensure => '0.12.1';
+        'supervisor':
+            ensure => '3.0a12';
+        'supervisor_twiddler':
+            ensure => '0.4';
+        'tornado':
+            ensure => '2.2.1';
+    }
 }
 
 # Make sure mongodb has a folder
