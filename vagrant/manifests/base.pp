@@ -38,7 +38,7 @@ exec { 'git clone git://github.com/cnelsonsic/SimpleMMO.git':
 }
 
 # Install the requirements.
-class pip {
+class pip-packages {
     Package { provider => "pip" }
     package {
         'Elixir':
@@ -65,6 +65,7 @@ class pip {
             ensure => '2.2.1';
     }
 }
+include pip-packages
 
 # Make sure mongodb has a folder
 file { '/home/vagrant/SimpleMMO/mongodb':
