@@ -11,16 +11,27 @@ sys.path.append(".")
 
 import settings
 
+def enough_disk():
+    '''Determine if the disk we're on has more than about 400mb of free disk.
+    We use this because the mongodb server generally allocates about 400mb
+    worth of database files when it runs.'''
+    s = os.statvfs(".")
+    freebytes = s.f_bsize * s.f_bavail
+    return freebytes/1024/1024 > 400
 
 class IntegrationBase(unittest.TestCase):
     '''An integration test for the Client class.'''
 
     @classmethod
     def setUpClass(cls):
-        # Fire up servers to test against.
         cls.servers = []
-        servers = OrderedDict()
         cls.mongodb_dir = './mongodb-unittest/'
+
+        if not enough_disk():
+            return
+
+        # Fire up servers to test against.
+        servers = OrderedDict()
         if not os.path.exists(cls.mongodb_dir):
             os.mkdir(cls.mongodb_dir)
         servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=%s' % cls.mongodb_dir]
@@ -46,4 +57,12 @@ class IntegrationBase(unittest.TestCase):
         for server in cls.servers:
             server.send_signal(SIGINT)
         import shutil
-        shutil.rmtree(cls.mongodb_dir)
+        try:
+            shutil.rmtree(cls.mongodb_dir)
+        except OSError:
+            # Don't care if it's nonexistent.
+            pass
+
+    def setUp(self):
+        if not enough_disk():
+            self.skipTest("Not enough disk space to run this test.")
