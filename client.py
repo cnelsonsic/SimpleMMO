@@ -133,9 +133,15 @@ class Client(object):
             if not self.authenticate(username=username, password=password):
                 raise AuthenticationError("Authentication failed with credentials: '%s':'%s'" % (username, password))
 
+    def post(self, *args, **kwargs):
+        return requests.post(''.join(args), **kwargs)
+
+    def get(self, *args, **kwargs):
+        return requests.get(''.join(args), **kwargs)
+
     def authenticate(self, username, password):
         data = {"username": username, "password": password}
-        r = requests.post(''.join((settings.AUTHSERVER, "/login")), data=data)
+        r = self.post(settings.AUTHSERVER, "/login", data=data)
         if r.status_code == 200:
             self.cookies.update({'user': r.cookies.get('user')})
             self._populate_characters()
@@ -146,7 +152,7 @@ class Client(object):
 
     def _populate_characters(self):
         '''Get the characters for the currently logged in.'''
-        r = requests.get(''.join((settings.AUTHSERVER, "/characters")), cookies=self.cookies)
+        r = self.get(settings.AUTHSERVER, "/characters", cookies=self.cookies)
         if r.status_code == 200:
             for charname in json.loads(r.content):
                 self.characters[charname] = Character(charname)
@@ -165,7 +171,7 @@ class Client(object):
             pass
 
         url = ''.join((settings.CHARSERVER, "/%s/zone" % char.name))
-        r = requests.get(url, cookies=self.cookies)
+        r = self.get(url, cookies=self.cookies)
         if r.status_code == 200:
             data = json.loads(r.content)
             zone = data.get('zone')
@@ -189,7 +195,7 @@ class Client(object):
             # Cache miss :(
             pass
 
-        r = requests.get(''.join((settings.ZONESERVER, "/%s" % zoneid)), cookies=self.cookies)
+        r = self.get(settings.ZONESERVER, "/%s" % zoneid, cookies=self.cookies)
         if r.status_code == 200:
             zoneurl = r.content
             if zoneurl == "":
@@ -212,7 +218,7 @@ class Client(object):
 
 
         data = {"since": self.last_object_update.strftime(settings.DATETIME_FORMAT)}
-        r = requests.get(''.join((zone, '/objects')), cookies=self.cookies, params=data)
+        r = self.get(zone, '/objects', cookies=self.cookies, params=data)
 
         if r.status_code == 200:
             objects = json.loads(r.content)
@@ -233,7 +239,7 @@ class Client(object):
 
         if char.online != status:
             data = {'character': char.name, 'status': status}
-            r = requests.post(''.join((self.get_zone_url(char.zone), '/setstatus')), cookies=self.cookies, data=data)
+            r = self.post(self.get_zone_url(char.zone), '/setstatus', cookies=self.cookies, data=data)
             result = json_or_exception(r)
             if result is True:
                 char.online = status
@@ -251,7 +257,7 @@ class Client(object):
             raise ClientError("Cannot move character, not online: %s" % char.online)
 
         data = {'character': char.name, 'x': xmod, 'y': ymod, 'z': zmod}
-        r = requests.post(''.join((self.get_zone_url(char.zone), '/movement')), cookies=self.cookies, data=data)
+        r = self.post(self.get_zone_url(char.zone), '/movement', cookies=self.cookies, data=data)
         content = json_or_exception(r)
         if content is True:
             return True
@@ -280,7 +286,7 @@ class Client(object):
         '''Activate (click) an object by its id.'''
         char = self.get_char_obj(character)
         data = {'character': char.name}
-        r = requests.post(''.join((self.get_zone_url(char.zone), '/activate/%s' % object_id)), cookies=self.cookies, data=data)
+        r = self.post(self.get_zone_url(char.zone), '/activate/%s' % object_id, cookies=self.cookies, data=data)
         content = json_or_exception(r)
         if content:
             return True
