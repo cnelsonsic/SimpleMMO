@@ -12,5 +12,6 @@ supervisor-twiddler==0.4
 
 raven==1.7.6
 sentry==4.2.5
+simplejson<2.5.0
 
 mock==0.8
