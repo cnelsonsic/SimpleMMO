@@ -61,6 +61,8 @@ True
 import datetime
 import json
 import requests
+import logging
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 import settings
 

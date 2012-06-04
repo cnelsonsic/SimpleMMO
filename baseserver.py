@@ -20,6 +20,8 @@
 # ##### END AGPL LICENSE BLOCK #####
 
 import settings
+import logging
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 from tornado.web import Application, RequestHandler
 from tornado.ioloop import IOLoop
