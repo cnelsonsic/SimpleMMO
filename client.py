@@ -122,6 +122,8 @@ class Character(object):
 
 class Client(object):
     def __init__(self, username=None, password=None):
+        self.init_logging()
+
         self.characters = {}
         self.last_character = None
 
@@ -135,11 +137,26 @@ class Client(object):
             if not self.authenticate(username=username, password=password):
                 raise AuthenticationError("Authentication failed with credentials: '%s':'%s'" % (username, password))
 
+    def init_logging(self):
+        self.logger = logging.getLogger('client')
+
+    def log(self, level, message, *args, **kwargs):
+        self.logger.log(level, message, *args, **kwargs)
+
+    def info(self, message):
+        self.log(logging.INFO, message)
+
     def post(self, *args, **kwargs):
-        return requests.post(''.join(args), **kwargs)
+        url = ''.join(args)
+        r = requests.post(url, **kwargs)
+        self.info("POST: %s (%r)" % (url, kwargs))
+        return r
 
     def get(self, *args, **kwargs):
-        return requests.get(''.join(args), **kwargs)
+        url = ''.join(args)
+        r = requests.get(''.join(args), **kwargs)
+        self.info("POST: %s (%r)" % (url, kwargs))
+        return r
 
     def authenticate(self, username, password):
         data = {"username": username, "password": password}
