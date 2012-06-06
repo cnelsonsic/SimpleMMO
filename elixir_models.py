@@ -38,6 +38,7 @@ class User(Entity):
 
     username = Field(UnicodeText, unique=True, required=True)
     password = Field(UnicodeText, required=True)
+    email = Field(UnicodeText)
     characters = OneToMany('Character') # A User has Many Characters
 
     def __repr__(self):

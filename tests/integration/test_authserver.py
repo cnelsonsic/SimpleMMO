@@ -4,6 +4,8 @@ import unittest
 from tornado.web import Application, decode_signed_value
 from tornado.testing import AsyncHTTPTestCase
 
+from mock import Mock
+
 import sys
 sys.path.append(".")
 
@@ -134,6 +136,107 @@ class TestAuthHandler(AsyncHTTPTestCase):
             self.assertEqual('true', result['admin'])
             self.assertEqual(username, result['user'])
 
+class TestRegistrationHandler(AsyncHTTPTestCase):
+    def get_app(self):
+        return Application([('/', RegistrationHandler)], cookie_secret=settings.COOKIE_SECRET)
+
+    def setUp(self):
+        super(TestRegistrationHandler, self).setUp()
+        set_up_db()
+        app = Application([('/', RegistrationHandler)], cookie_secret=settings.COOKIE_SECRET)
+        req = Mock()
+        req.cookies = {}
+        self.registration_handler = RegistrationHandler(app, req)
+
+    def tearDown(self):
+        super(TestAuthHandler, self).tearDown()
+
+    def get_secure_cookie(self, name):
+        '''A helper method to get a cookie that was set securely.'''
+        for cookie in self.registration_handler._new_cookies:
+            if name in cookie.keys():
+                cookie_value = cookie[name].value
+                result = decode_signed_value(settings.COOKIE_SECRET, name, cookie_value)
+                return result
+
+    def test_post(self):
+        '''Create a user given an email, username and password.'''
+        # Setup
+        email = "user@example.com"
+        username = "gooduser"
+        password = "goodpass"
+
+        # Result: Result will be 'Registration Successful', and a User will be created.
+        qstring = "email={0}&username={1}&password={2}".format(email, username, password)
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'Registration successful.'
+        self.assertEqual(expected, response.body)
+
+        # Check for User
+        user = User.query.filter_by(username=username, password=password).one()
+        self.assertTrue(user)
+        self.assertEqual(user.email, email)
+
+    def test_post_already_exists(self):
+        '''Cannot create the same user twice.'''
+        # Setup
+        email = "user@example.com"
+        username = "gooduser"
+        password = "goodpass"
+
+        # result: result will be 'registration successful', and a user will be created.
+        qstring = "email={0}&username={1}&password={2}".format(email, username, password)
+        response = self.fetch('/', method='post', body=qstring)
+        expected = 'registration successful.'
+        self.assertequal(expected, response.body)
+
+        # Result: Result will be 'User already exists.'.
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'User already exists.'
+        self.assertEqual(expected, response.body)
+        self.assertEqual(401, response.status)
+
+    def test_post_no_username(self):
+        '''Usernames are required.'''
+        # Setup
+        email = "user@example.com"
+        password = "goodpass"
+
+        # Result: Result will be 'A user name is required.'.
+        qstring = "email={0}&password={1}".format(email, password)
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'A user name is required.'
+        self.assertEqual(expected, response.body)
+        self.assertEqual(400, response.status)
+
+    def test_post_no_password(self):
+        '''Passwords are required.'''
+        # Setup
+        email = "user@example.com"
+        username = "gooduser"
+
+        # Result: Result will be 'A password is required.'.
+        qstring = "email={0}&username={1}".format(email, username)
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'A password is required.'
+        self.assertEqual(expected, response.body)
+        self.assertEqual(400, response.status)
+
+    def test_post_no_email(self):
+        '''Emails are optional.'''
+        # Setup
+        username = "gooduser"
+        password = "goodpass"
+
+        # Result: Result will be 'Registration Successful', and a User will be created.
+        qstring = "username={0}&password={1}".format(username, password)
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'Registration successful.'
+        self.assertEqual(expected, response.body)
+
+        # Check for User
+        user = User.query.filter_by(username=username, password=password).one()
+        self.assertTrue(user)
 
 class TestLogoutHandler(unittest.TestCase):
     def test_get(self):
