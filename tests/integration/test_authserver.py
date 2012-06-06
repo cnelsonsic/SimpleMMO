@@ -9,7 +9,7 @@ from mock import Mock
 import sys
 sys.path.append(".")
 
-from authserver import PingHandler, AuthHandler
+from authserver import PingHandler, AuthHandler, RegistrationHandler
 import settings
 
 from elixir import session
@@ -149,7 +149,7 @@ class TestRegistrationHandler(AsyncHTTPTestCase):
         self.registration_handler = RegistrationHandler(app, req)
 
     def tearDown(self):
-        super(TestAuthHandler, self).tearDown()
+        super(TestRegistrationHandler, self).tearDown()
 
     def get_secure_cookie(self, name):
         '''A helper method to get a cookie that was set securely.'''
@@ -173,7 +173,7 @@ class TestRegistrationHandler(AsyncHTTPTestCase):
         self.assertEqual(expected, response.body)
 
         # Check for User
-        user = User.query.filter_by(username=username, password=password).one()
+        user = User.query.filter_by(username=username, password=password).first()
         self.assertTrue(user)
         self.assertEqual(user.email, email)
 
@@ -186,15 +186,15 @@ class TestRegistrationHandler(AsyncHTTPTestCase):
 
         # result: result will be 'registration successful', and a user will be created.
         qstring = "email={0}&username={1}&password={2}".format(email, username, password)
-        response = self.fetch('/', method='post', body=qstring)
-        expected = 'registration successful.'
-        self.assertequal(expected, response.body)
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'Registration successful.'
+        self.assertEqual(expected, response.body)
 
         # Result: Result will be 'User already exists.'.
         response = self.fetch('/', method='POST', body=qstring)
         expected = 'User already exists.'
         self.assertEqual(expected, response.body)
-        self.assertEqual(401, response.status)
+        self.assertEqual(401, response.code)
 
     def test_post_no_username(self):
         '''Usernames are required.'''
@@ -207,7 +207,7 @@ class TestRegistrationHandler(AsyncHTTPTestCase):
         response = self.fetch('/', method='POST', body=qstring)
         expected = 'A user name is required.'
         self.assertEqual(expected, response.body)
-        self.assertEqual(400, response.status)
+        self.assertEqual(400, response.code)
 
     def test_post_no_password(self):
         '''Passwords are required.'''
@@ -220,10 +220,10 @@ class TestRegistrationHandler(AsyncHTTPTestCase):
         response = self.fetch('/', method='POST', body=qstring)
         expected = 'A password is required.'
         self.assertEqual(expected, response.body)
-        self.assertEqual(400, response.status)
+        self.assertEqual(400, response.code)
 
     def test_post_no_email(self):
-        '''Emails are optional.'''
+        '''Can create a user with no email.'''
         # Setup
         username = "gooduser"
         password = "goodpass"
@@ -235,8 +235,31 @@ class TestRegistrationHandler(AsyncHTTPTestCase):
         self.assertEqual(expected, response.body)
 
         # Check for User
-        user = User.query.filter_by(username=username, password=password).one()
+        user = User.query.filter_by(username=username, password=password).first()
         self.assertTrue(user)
+
+    def test_post_email_already_exists(self):
+        '''Can create a user with the same email.'''
+        # Setup
+        email = "user@example.com"
+        username = "gooduser"
+        password = "goodpass"
+
+        # result: result will be 'registration successful', and a user will be created.
+        qstring = "email={0}&username={1}&password={2}"
+        query = qstring.format(email, username, password)
+        response = self.fetch('/', method='POST', body=query)
+        expected = 'Registration successful.'
+        self.assertEqual(expected, response.body)
+
+        another_username = "anotheruser"
+        another_password = "anotherpass"
+        query = qstring.format(email, another_username, another_password)
+
+        # Result: Result will be 'User already exists.'.
+        response = self.fetch('/', method='POST', body=qstring)
+        expected = 'Registration successful.'
+        self.assertEqual(expected, response.body)
 
 class TestLogoutHandler(unittest.TestCase):
     def test_get(self):

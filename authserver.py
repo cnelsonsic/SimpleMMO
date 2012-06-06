@@ -21,13 +21,15 @@
 # ##### END AGPL LICENSE BLOCK #####
 
 '''AuthServer
-A server providing authentication, and allows a user to get a list of their characters.
+A server providing registration, authentication, and allows a user to get a list of their characters.
 '''
 
 # TODO: Write a function to pull in the docstrings from defined classes here and 
 # append them to the module docstring
 
 import json
+
+from sqlalchemy.exc import IntegrityError
 
 import tornado
 
@@ -43,6 +45,36 @@ class PingHandler(BaseHandler):
 
 # TODO: Make an SQLUserController
 # TODO: Make an SQLCharacterController
+
+class RegistrationHandler(BaseHandler):
+    '''RegistrationHandler creates Users.'''
+    def post(self):
+        username = self.get_argument("username", "")
+        password = self.get_argument("password", "")
+        email = self.get_argument("email", "")
+
+        if not username:
+            return self.HTTPError(400, "A user name is required.")
+
+        if not password:
+            return self.HTTPError(400, "A password is required.")
+
+        user = self.register_user(username, password, email=email)
+        if user:
+            return self.write('Registration successful.')
+        else:
+            return self.HTTPError(401, "User already exists.")
+
+    def register_user(self, username, password, email=None):
+        user = User(username=username, password=password, email=email)
+        try:
+            session.commit()
+        except IntegrityError:
+            # User already exists.
+            session.rollback()
+            return False
+        return user
+
 
 class AuthHandler(BaseHandler):
     '''AuthHandler authenticates a user and sets a session in the database.'''

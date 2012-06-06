@@ -66,6 +66,12 @@ class BaseHandler(RequestHandler):
         else:
             return None
 
+    def HTTPError(self, code, message):
+        old_write_error = self.write_error
+        self.write_error = lambda status_code: self.write(message)
+        self.send_error(code)
+        self.write_error = old_write_error
+
 class SimpleHandler(BaseHandler):
     def __init__(self, output, *args):
         self.output = output
