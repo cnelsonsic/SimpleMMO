@@ -2,6 +2,7 @@
 *.pyo
 *.sqlite
 .coverage
+coverage.xml
 .pythoscope
 *,cover
 coveragehtml
