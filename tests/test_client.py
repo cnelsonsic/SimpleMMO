@@ -1,6 +1,9 @@
 #!/usr/bin/env python2.7
 import unittest
 
+import logging
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
+
 import sys
 sys.path.append(".")
 
@@ -9,6 +12,11 @@ import settings
 import client
 
 from integration_base import IntegrationBase
+
+from elixir import session
+from elixir_models import metadata, setup_all, create_all
+from elixir_models import User
+
 
 class TestClient(IntegrationBase):
 
@@ -19,6 +27,15 @@ class TestClient(IntegrationBase):
 
         # Set the default character name.
         cls.character = 'Graxnor'
+        cls.clean_up_db()
+
+    @staticmethod
+    def clean_up_db():
+        metadata.bind = 'sqlite:///simplemmo.sqlite'
+        setup_all()
+        create_all()
+        User.query.delete()
+        session.commit()
 
     def test___init__(self):
         '''Init the Client with no args.'''
@@ -35,6 +52,41 @@ class TestClient(IntegrationBase):
         '''Initting the Client with a bad user/pass combo will raise an exception. '''
         with self.assertRaises(client.AuthenticationError):
             client.Client(username="BadUser", password="BadPassword")
+
+    def test_register(self):
+        '''Register with a good username and password.'''
+        c = client.Client()
+        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+        self.assertTrue(result)
+        self.assertEqual(c.last_user, "gooduser")
+
+    def test_register_twice(self):
+        '''Register with a good username and password, twice!
+        If a user tries to register twice, with the same info, their request
+        should be squelched and all continues as if nothing went awry.
+        (If the user re-instantiates the client, show errors as normal.)
+        '''
+        c = client.Client()
+        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+        self.assertTrue(result)
+
+        c = client.Client()
+        with self.assertRaises(client.RegistrationError) as cm:
+            c.register(username="gooduser", password="goodpass", email="test@example.com")
+            self.assertIn('User already exists.', cm.exception.message)
+
+    def test_register_twice_different_instance(self):
+        '''Register a good username and password twice, from different instances.
+        If a user tries to register a username that is already taken, show them
+        a meaningful error.'''
+        c = client.Client()
+        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+        self.assertTrue(result)
+
+        c = client.Client()
+        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+        self.assertTrue(result)
+        self.assertEqual(c.last_user, "gooduser")
 
     def test_authenticate(self):
         '''Authenticating after initting Client should work.'''
