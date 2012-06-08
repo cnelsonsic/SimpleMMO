@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>SimpleMMO by cnelsonsic</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>SimpleMMO</h1>
+        <p>A simple massively-multiplayer online game server framework.</p>
+        <p class="view"><a href="https://github.com/cnelsonsic/SimpleMMO">View the Project on GitHub <small>cnelsonsic/SimpleMMO</small></a></p>
+        <ul>
+          <li><a href="https://github.com/cnelsonsic/SimpleMMO/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/cnelsonsic/SimpleMMO/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/cnelsonsic/SimpleMMO">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>SimpleMMO</h1>
+
+<p><a href="http://travis-ci.org/cnelsonsic/SimpleMMO"><img src="https://secure.travis-ci.org/cnelsonsic/SimpleMMO.png?branch=master" alt="Build Status"></a></p>
+
+<h2>Quick Installation</h2>
+
+<p>You will need pip to install the requirements, you can do something like:</p>
+
+<pre><code>sudo apt-get install python-setuptools python-dev build-essential
+</code></pre>
+
+<p>or</p>
+
+<pre><code>sudo yum install python-setuptools python-devel gcc
+</code></pre>
+
+<p>followed by</p>
+
+<pre><code>sudo easy_install -U pip
+</code></pre>
+
+<p>You'll need to use pip to install the required python packages:</p>
+
+<pre><code>sudo pip install -r requirements.txt
+</code></pre>
+
+<p>SimpleMMO uses supervisor to control its server processes, so you will need to
+start them by running <code>supervisord</code> while in the SimpleMMO checkout directory.
+You can use <code>supervisorctl</code> to check up on the server processes.</p>
+
+<p>Alternately, you can deploy without supervisord (not recommended) and manage
+processes yourself.</p>
+
+<p>Finally, you can start up the administrative client with</p>
+
+<pre><code>python qtclient.py
+</code></pre>
+
+<h2>Servers</h2>
+
+<h3>AuthServer</h3>
+
+<p>The AuthServer authenticates a client's usernames and passwords.
+Its main purpose is to provide the client with a cookie that the other
+servers will recognize.
+It also allows a user to look up a list of their characters.</p>
+
+<h3>CharServer</h3>
+
+<p>The CharServer manages information about Characters.
+Specifically, what zone a character is currently in.
+In the future, this server will probably keep track of a character's statistics,
+inventory, and things of that nature.</p>
+
+<h3>MasterZoneServer</h3>
+
+<p>The MasterZoneServer is responsible for starting up individual zones.
+It also allows a client to look up what URL is associated with a specific zone id.
+The magic is that when it can't find a URL for a zoneid, it starts up a ZoneServer
+when a zone-id isn't found.</p>
+
+<h3>ZoneServer</h3>
+
+<p>ZoneServers get started by the MasterZoneServer automatically.
+The ZoneServers accept requests for a given set of world data.
+They are the actual areas where characters roam about and do game things.
+There are also zone-limited chat and private messages.
+There are global messages but they aren't handled by the ZoneServer.
+Each ZoneServer is entirely self-contained and is only concerned with
+what is contained inside itself.</p>
+
+<h4>ScriptServer</h4>
+
+<p>ScriptServer is a server that runs all the scripts for a Zone.
+Each zone should ideally start its own ScriptServer.
+Contained inside are little Python classes with various event handlers.
+See <code>games/objects/chicken.py</code> for an example script.</p>
+
+<h4>PhysicsServer</h4>
+
+<p>The PhysicsServer is a bit complex and probably optional in the long run.
+It looks at the database for the zone and simulates all the objects in the scene
+as physical, pymunk objects.
+Then it updates their positions in-world.
+This is generally just for 'settling' and preventing intersection of physical
+objects.
+Again, this is optional and probably completely vestigial.</p>
+
+<h2>Databases</h2>
+
+<p>SimpleMMO uses a combination of databases to do its job most effectively.</p>
+
+<h3>SQL</h3>
+
+<p>The bulk of database work is done in an SQL database, you can use MySQL, Postgres,
+or even SQLite.
+Basically anything that Elixir (and by extension, SQLAlchemy) supports.</p>
+
+<h3>MongoDB</h3>
+
+<p>Zones are a little different.
+They use MongoDB for their data storage needs.
+It's fast, but less fault tolerant than the SQL databases.
+Keep in mind that when starting for the first time, it may generate a "prealloc"
+file that is quite large, on the order of a few gigabytes.
+For most people, this will not be a problem.
+However on storage-limited systems, this may prove frustrating.</p>
+
+<p>The real problem here is that there is a flag for mongod, --noprealloc, which
+should work for its journal files as well, but does not.
+See the bug at: <a href="https://jira.mongodb.org/browse/SERVER-2733">https://jira.mongodb.org/browse/SERVER-2733</a> for more information.</p>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/cnelsonsic">cnelsonsic</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    
+  </body>
+</html>
