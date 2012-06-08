@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+from contextlib import contextmanager
 import unittest
 
 import logging
@@ -27,14 +28,27 @@ class TestClient(IntegrationBase):
 
         # Set the default character name.
         cls.character = 'Graxnor'
-        cls.clean_up_db()
+
+    def setUp(self):
+        super(TestClient, self).setUp()
+
+    @contextmanager
+    def fresh_servers(self):
+        '''Kills all the servers and restarts them.'''
+        self.tearDownClass() # Kill off all the existing servers
+        self.setUpClass() # Fire up new servers
+        yield # Let the code do its thing
+        self.tearDownClass() # Kill off the existing servers
+        self.setUpClass() # Fire up new servers for the next test
 
     @staticmethod
     def clean_up_db():
         metadata.bind = 'sqlite:///simplemmo.sqlite'
         setup_all()
         create_all()
-        User.query.delete()
+        for u in User.query.all():
+            print "Deleting %r" % u
+            u.delete()
         session.commit()
 
     def test___init__(self):
@@ -56,7 +70,8 @@ class TestClient(IntegrationBase):
     def test_register(self):
         '''Register with a good username and password.'''
         c = client.Client()
-        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+        with self.fresh_servers():
+            result = c.register(username="gooduser", password="goodpass", email="test@example.com")
         self.assertTrue(result)
         self.assertEqual(c.last_user, "gooduser")
 
@@ -67,26 +82,27 @@ class TestClient(IntegrationBase):
         (If the user re-instantiates the client, show errors as normal.)
         '''
         c = client.Client()
-        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
-        self.assertTrue(result)
+        with self.fresh_servers():
+            first_result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+            self.assertTrue(first_result)
+            self.assertEqual(c.last_user, "gooduser")
 
-        c = client.Client()
-        with self.assertRaises(client.RegistrationError) as cm:
-            c.register(username="gooduser", password="goodpass", email="test@example.com")
-            self.assertIn('User already exists.', cm.exception.message)
+            second_result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+            self.assertTrue(second_result)
 
     def test_register_twice_different_instance(self):
         '''Register a good username and password twice, from different instances.
         If a user tries to register a username that is already taken, show them
         a meaningful error.'''
         c = client.Client()
-        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
-        self.assertTrue(result)
+        with self.fresh_servers():
+            result = c.register(username="gooduser", password="goodpass", email="test@example.com")
+            self.assertTrue(result)
 
-        c = client.Client()
-        result = c.register(username="gooduser", password="goodpass", email="test@example.com")
-        self.assertTrue(result)
-        self.assertEqual(c.last_user, "gooduser")
+            c = client.Client()
+            with self.assertRaises(client.RegistrationError) as cm:
+                c.register(username="gooduser", password="goodpass", email="test@example.com")
+            self.assertIn('User already exists.', cm.exception.message)
 
     def test_authenticate(self):
         '''Authenticating after initting Client should work.'''

@@ -71,6 +71,10 @@ class ClientError(Exception):
     pass
 
 
+class RegistrationError(ClientError):
+    pass
+
+
 class AuthenticationError(ClientError):
     pass
 
@@ -124,6 +128,8 @@ class Client(object):
     def __init__(self, username=None, password=None):
         self.init_logging()
 
+        self.last_user = None
+
         self.characters = {}
         self.last_character = None
 
@@ -157,6 +163,18 @@ class Client(object):
         r = requests.get(''.join(args), **kwargs)
         self.info("POST: %s (%r)" % (url, kwargs))
         return r
+
+    def register(self, username, password, email=None):
+        if username == self.last_user:
+            return 'Registration successful.'
+
+        data = {"username": username, "password": password, "email": email}
+        r = self.post(settings.AUTHSERVER, "/register", data=data)
+        if r.status_code == 200:
+            self.last_user = username
+            return str(r.content)
+        else:
+            raise RegistrationError(r.content)
 
     def authenticate(self, username, password):
         data = {"username": username, "password": password}

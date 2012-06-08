@@ -28,6 +28,7 @@ A server providing registration, authentication, and allows a user to get a list
 # append them to the module docstring
 
 import json
+import logging
 
 from sqlalchemy.exc import IntegrityError
 
@@ -60,6 +61,7 @@ class RegistrationHandler(BaseHandler):
             return self.HTTPError(400, "A password is required.")
 
         user = self.register_user(username, password, email=email)
+        logging.info("User was %s" % user)
         if user:
             return self.write('Registration successful.')
         else:
@@ -72,7 +74,7 @@ class RegistrationHandler(BaseHandler):
         except IntegrityError:
             # User already exists.
             session.rollback()
-            return False
+            user = False
         return user
 
 
@@ -137,6 +139,7 @@ if __name__ == "__main__":
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/ping", PingHandler))
+    handlers.append((r"/register", RegistrationHandler))
     handlers.append((r"/login", AuthHandler))
     handlers.append((r"/logout", LogoutHandler))
     handlers.append((r"/characters", CharacterHandler))
