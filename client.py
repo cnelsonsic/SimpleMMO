@@ -335,8 +335,12 @@ def main(ticks=10):
     c = Client()
 
     # Authenticate.
-    from settings import DEFAULT_USERNAME, DEFAULT_PASSWORD
-    if c.authenticate(DEFAULT_USERNAME, DEFAULT_PASSWORD) is True:
+    username = "Kilrox"
+    password = "kilroxrox"
+    if c.register(username, password):
+        print "registered"
+
+    if c.authenticate(username, password) is True:
         print "authenticated"
 
     # Freakin' automatic.
