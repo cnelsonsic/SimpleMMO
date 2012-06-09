@@ -1,6 +1,7 @@
 tornado==2.2.1
 Elixir==0.7.1
 requests==0.12.1
+passlib==1.6
 
 pymongo==2.1.1 #v2.2 deprecates pymongo.json_util in favor of bson.json_util, which is apparently broken.
 mongoengine==0.6.9

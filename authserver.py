@@ -30,6 +30,8 @@ A server providing registration, authentication, and allows a user to get a list
 import json
 import logging
 
+from passlib.context import CryptContext
+
 from sqlalchemy.exc import IntegrityError
 
 import tornado
@@ -46,6 +48,28 @@ class PingHandler(BaseHandler):
 
 # TODO: Make an SQLUserController
 # TODO: Make an SQLCharacterController
+
+class UserController(object):
+    context = CryptContext(
+        schemes=["pbkdf2_sha512",],
+        default="pbkdf2_sha512",
+
+        # vary rounds parameter randomly when creating new hashes...
+        all__vary_rounds = 0.1,
+
+        # set the number of rounds that should be used...
+        # (appropriate values may vary for different schemes,
+        # and the amount of time you wish it to take)
+        pbkdf2_sha256__default_rounds = 80000,
+        )
+
+    @classmethod
+    def hash_password(cls, password):
+        return cls.context.encrypt(password)
+
+    @classmethod
+    def check_password(cls, plaintext, hashed):
+        return cls.context.verify(plaintext, hashed)
 
 class RegistrationHandler(BaseHandler):
     '''RegistrationHandler creates Users.'''
@@ -68,7 +92,9 @@ class RegistrationHandler(BaseHandler):
             return self.HTTPError(401, "User already exists.")
 
     def register_user(self, username, password, email=None):
-        user = User(username=username, password=password, email=email)
+        user = User(username=username,
+                    password=UserController.hash_password(password),
+                    email=email)
         try:
             session.commit()
         except IntegrityError:
@@ -96,8 +122,10 @@ class AuthHandler(BaseHandler):
         If they match, return True.
         Else, return False.'''
         # Do some database stuff here to verify the user.
-        user = User.query.filter_by(username=username, password=password).first()
-        return True if user else False
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return False
+        return UserController.check_password(plaintext=password, hashed=user.password)
 
     def set_admin(self, user):
         # Look up username in admins list in database
@@ -151,9 +179,11 @@ if __name__ == "__main__":
     from elixir_models import setup
     setup(db_uri=dburi)
 
-    user = User.query.filter_by(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD).first()
+    password = UserController.hash_password(settings.DEFAULT_PASSWORD)
+    user = User.query.filter_by(username=settings.DEFAULT_USERNAME,
+                                password=password).first()
     if not user:
-        User(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        User(username=settings.DEFAULT_USERNAME, password=password)
         session.commit()
 
     print "Starting up Authserver..."

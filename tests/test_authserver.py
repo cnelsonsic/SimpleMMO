@@ -18,6 +18,8 @@ class TestAuthHandler(unittest.TestCase):
         req = Mock()
         self.auth_handler = AuthHandler(app, req)
 
+        patch('authserver.UserController').start()
+
     def test_authenticate(self):
         # Mock out the User object
         first = Mock(return_value=Mock())
@@ -46,7 +48,7 @@ class TestAuthHandler(unittest.TestCase):
         with patch.object(authserver, 'User', MockUser):
             result = self.auth_handler.authenticate(username, password)
 
-        MockUser.query.filter_by.assert_called_with(username=username, password=password)
+        MockUser.query.filter_by.assert_called_with(username=username)
         first.assert_called_once_with()
         self.assertFalse(result)
 
