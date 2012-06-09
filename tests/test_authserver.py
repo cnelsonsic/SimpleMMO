@@ -9,7 +9,7 @@ import sys
 sys.path.append(".")
 
 import authserver
-from authserver import AuthHandler
+from authserver import AuthHandler, RegistrationHandler
 import settings
 
 class TestAuthHandler(unittest.TestCase):
@@ -92,6 +92,48 @@ class TestAuthHandler(unittest.TestCase):
             self.auth_handler.set_current_user(user)
 
         mock_clear_cookie.assert_called_once_with("user")
+
+class TestRegistrationHandler(unittest.TestCase):
+
+    def setUp(self):
+        app = Application([('/', RegistrationHandler)])
+        req = Mock()
+        self.auth_handler = RegistrationHandler(app, req)
+
+        # Mock out the User and Session object
+        self.MockSession = Mock()
+        self.MockUser = Mock()
+
+        self.patches = []
+        self.patches.append(patch.object(authserver, 'User', self.MockUser))
+        self.patches.append(patch('authserver.session', self.MockSession))
+
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+
+    def test_register_user(self):
+        # Test
+        result = self.auth_handler.register_user("username", "password", "email")
+
+        self.assertEqual(result, self.MockUser())
+        self.assertEqual(self.MockSession.commit.call_count, 1)
+        self.assertEqual(self.MockSession.rollback.call_count, 0)
+
+    def test_register_user_already_existing(self):
+        from sqlalchemy.exc import IntegrityError
+        self.MockSession.commit.side_effect = IntegrityError(None, None, None, None)
+
+        # Test
+        result = self.auth_handler.register_user("username", "password", "email")
+
+        self.assertFalse(result)
+        self.assertEqual(self.MockSession.commit.call_count, 1)
+        self.assertEqual(self.MockSession.rollback.call_count, 1)
+
 
 class TestCharacterHandler(unittest.TestCase):
     def test_get_characters(self):
