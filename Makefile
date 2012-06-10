@@ -5,7 +5,7 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = _build
+BUILDDIR      = .
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -43,6 +43,7 @@ clean:
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	ln -s $(BUILDDIR)/html api
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
