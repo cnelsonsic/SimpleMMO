@@ -1,0 +1,320 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>authserver &mdash; SimpleMMO 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="SimpleMMO 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../http-routingtable.html" title="HTTP Routing Table"
+             >routing table</a> |</li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">SimpleMMO 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for authserver</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># ##### BEGIN AGPL LICENSE BLOCK #####</span>
+<span class="c"># This file is part of SimpleMMO.</span>
+<span class="c">#</span>
+<span class="c"># Copyright (C) 2011, 2012  Charles Nelson</span>
+<span class="c">#</span>
+<span class="c"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c"># it under the terms of the GNU Affero General Public License as</span>
+<span class="c"># published by the Free Software Foundation, either version 3 of the</span>
+<span class="c"># License, or (at your option) any later version.</span>
+<span class="c">#</span>
+<span class="c"># This program is distributed in the hope that it will be useful,</span>
+<span class="c"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c"># GNU Affero General Public License for more details.</span>
+<span class="c">#</span>
+<span class="c"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c"># along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c">#</span>
+<span class="c"># ##### END AGPL LICENSE BLOCK #####</span>
+
+<span class="sd">&#39;&#39;&#39;AuthServer</span>
+<span class="sd">A server providing registration, authentication, and allows a user to get a list of their characters.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c"># TODO: Write a function to pull in the docstrings from defined classes here and </span>
+<span class="c"># append them to the module docstring</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">passlib.context</span> <span class="kn">import</span> <span class="n">CryptContext</span>
+
+<span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="kn">import</span> <span class="n">IntegrityError</span>
+
+<span class="kn">import</span> <span class="nn">tornado</span>
+
+<span class="kn">import</span> <span class="nn">settings</span>
+
+<span class="kn">from</span> <span class="nn">baseserver</span> <span class="kn">import</span> <span class="n">BaseServer</span><span class="p">,</span> <span class="n">SimpleHandler</span><span class="p">,</span> <span class="n">BaseHandler</span>
+
+<span class="kn">from</span> <span class="nn">elixir_models</span> <span class="kn">import</span> <span class="n">User</span><span class="p">,</span> <span class="n">session</span>
+
+<span class="c"># TODO: Make an SQLCharacterController</span>
+
+<span class="k">class</span> <span class="nc">UserController</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">CryptContext</span><span class="p">(</span>
+        <span class="n">schemes</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;pbkdf2_sha512&quot;</span><span class="p">,],</span>
+        <span class="n">default</span><span class="o">=</span><span class="s">&quot;pbkdf2_sha512&quot;</span><span class="p">,</span>
+
+        <span class="c"># vary rounds parameter randomly when creating new hashes...</span>
+        <span class="n">all__vary_rounds</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+
+        <span class="c"># set the number of rounds that should be used...</span>
+        <span class="c"># (appropriate values may vary for different schemes,</span>
+        <span class="c"># and the amount of time you wish it to take)</span>
+        <span class="n">pbkdf2_sha256__default_rounds</span> <span class="o">=</span> <span class="mi">80000</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">hash_password</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">check_password</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">plaintext</span><span class="p">,</span> <span class="n">hashed</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">plaintext</span><span class="p">,</span> <span class="n">hashed</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PingHandler"><a class="viewcode-back" href="../index.html#authserver.PingHandler">[docs]</a><span class="k">class</span> <span class="nc">PingHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;An easy way to see if the server is alive.</span>
+
+<span class="sd">    .. http:get:: /ping</span>
+
+<span class="sd">        The string &quot;pong&quot;. Unconditionally.</span>
+
+<span class="sd">        **Example request**:</span>
+
+<span class="sd">        .. sourcecode:: http</span>
+
+<span class="sd">            GET /ping HTTP/1.1</span>
+
+<span class="sd">        **Example response**:</span>
+
+<span class="sd">        .. sourcecode:: http</span>
+
+<span class="sd">            HTTP/1.1 200 OK</span>
+<span class="sd">            Content-Type: text/plain</span>
+
+<span class="sd">            pong</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;pong&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="RegistrationHandler"><a class="viewcode-back" href="../index.html#authserver.RegistrationHandler">[docs]</a><span class="k">class</span> <span class="nc">RegistrationHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;RegistrationHandler creates Users.</span>
+<span class="sd">            POST /register&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">username</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="s">&quot;A user name is required.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">password</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="s">&quot;A password is required.&quot;</span><span class="p">)</span>
+
+        <span class="n">user</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">register_user</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;User was </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">user</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Registration successful.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">(</span><span class="mi">401</span><span class="p">,</span> <span class="s">&quot;User already exists.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">register_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
+                    <span class="n">password</span><span class="o">=</span><span class="n">UserController</span><span class="o">.</span><span class="n">hash_password</span><span class="p">(</span><span class="n">password</span><span class="p">),</span>
+                    <span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="c"># User already exists.</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="n">user</span>
+
+</div>
+<div class="viewcode-block" id="AuthHandler"><a class="viewcode-back" href="../index.html#authserver.AuthHandler">[docs]</a><span class="k">class</span> <span class="nc">AuthHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;AuthHandler authenticates a user and sets a session in the database.</span>
+<span class="sd">            GET /login&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;password&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">auth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">auth</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_current_user</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_admin</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Login successful.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">(</span><span class="mi">401</span><span class="p">,</span> <span class="s">&#39;Login Failed, username and/or password incorrect.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AuthHandler.authenticate"><a class="viewcode-back" href="../index.html#authserver.AuthHandler.authenticate">[docs]</a>    <span class="k">def</span> <span class="nf">authenticate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Compares a username/password pair against that in the database.</span>
+<span class="sd">        If they match, return True.</span>
+<span class="sd">        Else, return False.&#39;&#39;&#39;</span>
+        <span class="c"># Do some database stuff here to verify the user.</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="n">UserController</span><span class="o">.</span><span class="n">check_password</span><span class="p">(</span><span class="n">plaintext</span><span class="o">=</span><span class="n">password</span><span class="p">,</span> <span class="n">hashed</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">set_admin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+        <span class="c"># Look up username in admins list in database</span>
+        <span class="c"># if present, set secure cookie for admin</span>
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">settings</span><span class="o">.</span><span class="n">ADMINISTRATORS</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_secure_cookie</span><span class="p">(</span><span class="s">&quot;admin&quot;</span><span class="p">,</span> <span class="s">&#39;true&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clear_cookie</span><span class="p">(</span><span class="s">&quot;admin&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_current_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">user</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_secure_cookie</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clear_cookie</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="LogoutHandler"><a class="viewcode-back" href="../index.html#authserver.LogoutHandler">[docs]</a><span class="k">class</span> <span class="nc">LogoutHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Unsets the user&#39;s cookie.</span>
+<span class="sd">            GET /logout&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_cookie</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="CharacterHandler"><a class="viewcode-back" href="../index.html#authserver.CharacterHandler">[docs]</a><span class="k">class</span> <span class="nc">CharacterHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;CharacterHandler gets a list of characters for the given user account.</span>
+<span class="sd">            GET /characters&#39;&#39;&#39;</span>
+
+    <span class="nd">@tornado.web.authenticated</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_characters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">())))</span>
+
+<div class="viewcode-block" id="CharacterHandler.get_characters"><a class="viewcode-back" href="../index.html#authserver.CharacterHandler.get_characters">[docs]</a>    <span class="k">def</span> <span class="nf">get_characters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Queries the database for all characters owned by a particular username.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s">&#39;Graxnor&#39;</span><span class="p">,</span> <span class="s">&#39;Rumtiddlykins&#39;</span><span class="p">]</span>
+
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">tornado.options</span> <span class="kn">import</span> <span class="n">options</span><span class="p">,</span> <span class="n">define</span>
+    <span class="n">define</span><span class="p">(</span><span class="s">&quot;dburi&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;sqlite:///simplemmo.sqlite&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Where is the database?&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="n">tornado</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">parse_command_line</span><span class="p">()</span>
+    <span class="n">dburi</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">dburi</span>
+
+    <span class="n">handlers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">r&quot;/&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">SimpleHandler</span><span class="p">(</span><span class="n">__doc__</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+    <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">r&quot;/ping&quot;</span><span class="p">,</span> <span class="n">PingHandler</span><span class="p">))</span>
+    <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">r&quot;/register&quot;</span><span class="p">,</span> <span class="n">RegistrationHandler</span><span class="p">))</span>
+    <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">r&quot;/login&quot;</span><span class="p">,</span> <span class="n">AuthHandler</span><span class="p">))</span>
+    <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">r&quot;/logout&quot;</span><span class="p">,</span> <span class="n">LogoutHandler</span><span class="p">))</span>
+    <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">r&quot;/characters&quot;</span><span class="p">,</span> <span class="n">CharacterHandler</span><span class="p">))</span>
+
+    <span class="n">server</span> <span class="o">=</span> <span class="n">BaseServer</span><span class="p">(</span><span class="n">handlers</span><span class="p">)</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTHSERVERPORT</span><span class="p">)</span>
+
+    <span class="c"># Connect to the elixir db</span>
+    <span class="kn">from</span> <span class="nn">elixir_models</span> <span class="kn">import</span> <span class="n">setup</span>
+    <span class="n">setup</span><span class="p">(</span><span class="n">db_uri</span><span class="o">=</span><span class="n">dburi</span><span class="p">)</span>
+
+    <span class="n">password</span> <span class="o">=</span> <span class="n">UserController</span><span class="o">.</span><span class="n">hash_password</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">DEFAULT_PASSWORD</span><span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">DEFAULT_USERNAME</span><span class="p">,</span>
+                                <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="n">User</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">DEFAULT_USERNAME</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">print</span> <span class="s">&quot;Starting up Authserver...&quot;</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../http-routingtable.html" title="HTTP Routing Table"
+             >routing table</a> |</li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">SimpleMMO 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, C Nelson.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
