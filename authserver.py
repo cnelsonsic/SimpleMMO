@@ -42,11 +42,6 @@ from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 from elixir_models import User, session
 
-class PingHandler(BaseHandler):
-    def get(self):
-        self.write("pong")
-
-# TODO: Make an SQLUserController
 # TODO: Make an SQLCharacterController
 
 class UserController(object):
@@ -71,8 +66,17 @@ class UserController(object):
     def check_password(cls, plaintext, hashed):
         return cls.context.verify(plaintext, hashed)
 
+
+class PingHandler(BaseHandler):
+    '''An easy way to see if the server is alive.
+            GET /ping'''
+    def get(self):
+        self.write("pong")
+
+
 class RegistrationHandler(BaseHandler):
-    '''RegistrationHandler creates Users.'''
+    '''RegistrationHandler creates Users.
+            POST /register'''
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
@@ -105,7 +109,8 @@ class RegistrationHandler(BaseHandler):
 
 
 class AuthHandler(BaseHandler):
-    '''AuthHandler authenticates a user and sets a session in the database.'''
+    '''AuthHandler authenticates a user and sets a session in the database.
+            GET /login'''
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
@@ -141,13 +146,17 @@ class AuthHandler(BaseHandler):
         else:
             self.clear_cookie("user")
 
+
 class LogoutHandler(BaseHandler):
-    '''Unsets the user's cookie.'''
+    '''Unsets the user's cookie.
+            GET /logout'''
     def get(self):
         self.clear_cookie("user")
 
+
 class CharacterHandler(BaseHandler):
-    '''CharacterHandler gets a list of characters for the given user account.'''
+    '''CharacterHandler gets a list of characters for the given user account.
+            GET /characters'''
 
     @tornado.web.authenticated
     def get(self):
@@ -156,6 +165,7 @@ class CharacterHandler(BaseHandler):
     def get_characters(self, username):
         '''Queries the database for all characters owned by a particular username.'''
         return ['Graxnor', 'Rumtiddlykins']
+
 
 if __name__ == "__main__":
     from tornado.options import options, define
