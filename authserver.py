@@ -72,7 +72,7 @@ class PingHandler(BaseHandler):
 
     .. http:get:: /ping
 
-        The string "pong". Unconditionally.
+        Always the string "pong".
 
         **Example request**:
 
@@ -92,6 +92,7 @@ class PingHandler(BaseHandler):
     '''
     def get(self):
         self.write("pong")
+        self.set_header("Content-Type", "text/plain")
 
 
 class RegistrationHandler(BaseHandler):
