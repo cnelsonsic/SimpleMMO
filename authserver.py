@@ -209,10 +209,9 @@ if __name__ == "__main__":
     from elixir_models import setup
     setup(db_uri=dburi)
 
-    password = UserController.hash_password(settings.DEFAULT_PASSWORD)
-    user = User.query.filter_by(username=settings.DEFAULT_USERNAME,
-                                password=password).first()
+    user = User.query.filter_by(username=settings.DEFAULT_USERNAME).first()
     if not user:
+        password = UserController.hash_password(settings.DEFAULT_PASSWORD)
         User(username=settings.DEFAULT_USERNAME, password=password)
         session.commit()
 
