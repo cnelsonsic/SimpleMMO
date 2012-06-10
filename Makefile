@@ -43,7 +43,6 @@ clean:
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	ln -s $(BUILDDIR)/html api
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
