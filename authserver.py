@@ -69,7 +69,27 @@ class UserController(object):
 
 class PingHandler(BaseHandler):
     '''An easy way to see if the server is alive.
-            GET /ping'''
+
+    .. http:get:: /ping
+
+        The string "pong". Unconditionally.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            GET /ping HTTP/1.1
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: text/plain
+
+            pong
+
+    '''
     def get(self):
         self.write("pong")
 
