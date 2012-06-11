@@ -97,7 +97,36 @@ class PingHandler(BaseHandler):
 
 class RegistrationHandler(BaseHandler):
     '''RegistrationHandler creates Users.
-            POST /register'''
+
+    .. http:post:: /register
+
+        Creates a User in the AuthenticationServer's database.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            POST /register HTTP/1.1
+
+            username=asdf&password=asdf
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+
+            Registration succeeded.
+
+
+        :param username: The name of the user to create.
+        :param password: The password to use for authenticating the user.
+        :param email: Optional. An email to associate with the user.
+
+        :status 200: Registration succeeded.
+        :status 400: A required parameter was missing.
+        :status 401: The User already exists.
+    '''
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
