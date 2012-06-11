@@ -99,3 +99,6 @@ The real problem here is that there is a flag for mongod, --noprealloc, which
 should work for its journal files as well, but does not.
 See the bug at: https://jira.mongodb.org/browse/SERVER-2733 for more information.
 
+API Documentation
+-----------------
+[The API (for both HTTP and Python modules) is available here.](http://cnelsonsic.github.com/SimpleMMO/html/index.html)
