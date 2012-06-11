@@ -99,7 +99,7 @@ GET /logout</p>
 <dl class="get">
 <dt id="get--ping">
 <tt class="descname">GET </tt><tt class="descname">/ping</tt><a class="headerlink" href="#get--ping" title="Permalink to this definition">¶</a></dt>
-<dd><p>The string &#8220;pong&#8221;. Unconditionally.</p>
+<dd><p>Always the string &#8220;pong&#8221;.</p>
 <p><strong>Example request</strong>:</p>
 <div class="highlight-http"><div class="highlight"><pre><span class="nf">GET</span> <span class="nn">/ping</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 </pre></div>
@@ -118,8 +118,45 @@ pong
 <dl class="class">
 <dt id="authserver.RegistrationHandler">
 <em class="property">class </em><tt class="descclassname">authserver.</tt><tt class="descname">RegistrationHandler</tt><big>(</big><em>application</em>, <em>request</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/authserver.html#RegistrationHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#authserver.RegistrationHandler" title="Permalink to this definition">¶</a></dt>
-<dd><p>RegistrationHandler creates Users.
-POST /register</p>
+<dd><p>RegistrationHandler creates Users.</p>
+<dl class="post">
+<dt id="post--register">
+<tt class="descname">POST </tt><tt class="descname">/register</tt><a class="headerlink" href="#post--register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a User in the AuthenticationServer&#8217;s database.</p>
+<p><strong>Example request</strong>:</p>
+<div class="highlight-http"><div class="highlight"><pre><span class="nf">POST</span> <span class="nn">/register</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+
+username=asdf&amp;password=asdf
+</pre></div>
+</div>
+<p><strong>Example response</strong>:</p>
+<div class="highlight-http"><div class="highlight"><pre><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
+
+Registration succeeded.
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>username</strong> &#8211; The name of the user to create.</li>
+<li><strong>password</strong> &#8211; The password to use for authenticating the user.</li>
+<li><strong>email</strong> &#8211; Optional. An email to associate with the user.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Status Codes:</th><td class="field-body"><ul class="first last simple">
+<li><strong>200</strong> &#8211; Registration succeeded.</li>
+<li><strong>400</strong> &#8211; A required parameter was missing.</li>
+<li><strong>401</strong> &#8211; The User already exists.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
