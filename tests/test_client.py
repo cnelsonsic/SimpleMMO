@@ -104,6 +104,12 @@ class TestClient(IntegrationBase):
                 c.register(username="gooduser", password="goodpass", email="test@example.com")
             self.assertIn('User already exists.', cm.exception.message)
 
+    def test_ping(self):
+        '''Pinging the authserver should work.'''
+        c = client.Client()
+        result = c.ping()
+        self.assertTrue(result)
+
     def test_authenticate(self):
         '''Authenticating after initting Client should work.'''
         c = client.Client()
