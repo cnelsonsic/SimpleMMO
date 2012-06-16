@@ -31,7 +31,6 @@ exec { 'git clone git://github.com/cnelsonsic/SimpleMMO.git':
     cwd     => '/home/vagrant',
     path    => $::path,
     creates => '/home/vagrant/SimpleMMO/.git/',
-    logoutput => true,
     refresh => 'git reset --hard HEAD; git pull',
     unless  => 'test `git pull`',
     require => Package['git'],
@@ -48,7 +47,7 @@ class pip-packages {
         'raven':
             ensure => '1.7.6';
         'mock':
-            ensure => '0.8';
+            ensure => '0.8.0';
         'pymongo':
             ensure => '2.1.1';
         'mongoengine':
@@ -66,6 +65,57 @@ class pip-packages {
     }
 }
 include pip-packages
+
+# Compile a fresh libtcod
+class libtcod {
+    Package { provider => "aptitude" }
+    package {[
+        'mercurial',
+        'electric-fence',
+        'cmake',
+        'libgl1-mesa-dev',
+        'libpng-dev',
+        'libsdl-dev',
+        'upx-ucl',
+        ]:
+        ensure => 'latest';
+    }
+
+    exec { 'clone libtcod':
+        command     => 'hg clone https://bitbucket.org/jice/libtcod',
+        path        => $::path,
+        cwd         => '/home/vagrant/',
+        user        => 'vagrant',
+        creates     => '/home/vagrant/libtcod/.hg',
+        require     => Package['mercurial'],
+    }
+
+    exec { 'generate libtcod makefile':
+        command     => 'bash ./generate-make.sh unix',
+        path        => $::path,
+        cwd         => '/home/vagrant/libtcod/cmake/',
+        user        => 'vagrant',
+        creates     => '/home/vagrant/libtcod/cmake/release/Makefile',
+        require     => [Package['electric-fence'], Exec['clone libtcod'], Package['cmake']],
+    }
+
+    exec { 'build libtcod':
+        command     => 'make',
+        path        => $::path,
+        cwd         => '/home/vagrant/libtcod/cmake/release',
+        user        => 'vagrant',
+        require     => [Exec['generate libtcod makefile']],
+    }
+
+    exec { 'install libtcod':
+        command     => 'make install',
+        path        => $::path,
+        cwd         => '/home/vagrant/libtcod/cmake/release/',
+        user        => 'vagrant',
+        require     => [Exec['build libtcod'],],
+    }
+}
+include libtcod
 
 # Make sure mongodb has a folder
 file { '/home/vagrant/SimpleMMO/mongodb':
@@ -88,7 +138,6 @@ exec { 'sentry init':
     cwd         => '/home/vagrant/',
     user        => 'vagrant',
     creates     => '/home/vagrant/.sentry/sentry.conf.py',
-    logoutput   => 'true',
     require     => Package['sentry'],
 }
 
@@ -98,7 +147,6 @@ exec {'sentry --config=sentry.conf.py upgrade':
     cwd     => '/home/vagrant/SimpleMMO',
     user    => 'vagrant',
     tries   => 5, # Stupid thing tries to ask questions, but it gives up when you run it again.
-    logoutput => 'true',
     require => [Package['sentry'], Exec['sentry init']],
     before => Exec['supervisord'],
 }
