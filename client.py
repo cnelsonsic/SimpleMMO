@@ -164,6 +164,13 @@ class Client(object):
         self.info("POST: %s (%r)" % (url, kwargs))
         return r
 
+    def ping(self):
+        r = self.get(settings.AUTHSERVER, '/ping')
+        if r.content == 'pong':
+            return True
+        else:
+            return False
+
     def register(self, username, password, email=None):
         if username == self.last_user:
             return 'Registration successful.'
