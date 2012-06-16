@@ -26,7 +26,7 @@ import datetime
 # PySide imports
 import sys
 # from PySide.QtCore import *
-from PySide.QtCore import Qt, SIGNAL, QSize, QTimer
+from PySide.QtCore import Qt, SIGNAL, QSize, QTimer, Slot, Signal
 # from PySide.QtGui import *
 from PySide.QtGui import QDialog, QIcon, QLabel, QLineEdit, QPushButton,\
                          QVBoxLayout, QApplication, QTreeWidget, QTreeWidgetItem,\
@@ -34,13 +34,53 @@ from PySide.QtGui import QDialog, QIcon, QLabel, QLineEdit, QPushButton,\
                          QGraphicsPixmapItem, QPainter
 
 # Project imports
-import idealclient as client
+from client import Client
 from settings import CLIENT_UPDATE_FREQ
 from helpers import euclidian
 
 DEBUG = __debug__
 
+class QtClient(QWidget):
+
+    @Slot()
+    def open_login(self):
+        self.login_form = LoginForm()
+        self.login_form.show()
+
+    @Slot()
+    def login(self):
+        print "Logged In!"
+        self.charselect = CharacterSelect()
+        self.charselect.show()
+        print "Showed the charselect."
+
+    @Slot(str)
+    def choose_char(self, character):
+        print "Chose a character!", character
+
+        print "Selected %s" % character
+
+        zone = client.get_zone(character=character)
+        print "Player is in the %s zone." % zone
+
+        currentzone = client.get_zone_url(zone)
+        print "Connecting to zoneserver: %s" % currentzone
+
+        # Initialize the world viewer
+        global worldviewer
+        worldviewer = WorldViewer(charname=character, currentzone=currentzone)
+        global worldviewerdebug
+        worldviewerdebug = WorldViewerDebug(worldviewer)
+        global adminpanel
+        adminpanel = AdminPanel(charname=character, currentzone=currentzone)
+        worldviewerdebug.show()
+        worldviewer.show()
+        adminpanel.show()
+
+
 class LoginForm(QDialog):
+    logged_in = Signal()
+
     def __init__(self, parent=None):
         super(LoginForm, self).__init__(parent)
         self.setWindowTitle("Login")
@@ -71,11 +111,14 @@ class LoginForm(QDialog):
             layout.addWidget(w)
         self.setLayout(layout)
 
+        self.logged_in.connect(qtclient.login)
+
     def is_server_up(self):
         '''Tests to see if the authentication server is up.'''
+        global client
         from requests.exceptions import ConnectionError
         try:
-            if client.ping_authserver():
+            if client.ping():
                 self.login_button.setEnabled(True)
                 self.login_button.setText("Login!")
                 self.status_icon = QIcon.fromTheme("user-online")
@@ -90,18 +133,19 @@ class LoginForm(QDialog):
 
     def login(self):
         # TODO: This could be an exception if login failed. Catch it.
-        login_result = client.login(self.username.text(), self.password.text())
+        login_result = client.authenticate(self.username.text(), self.password.text())
         if login_result:
             # We logged in, so show the character select dialog
-            global charselect
-            charselect = CharacterSelect()
-            charselect.show()
+            self.logged_in.emit()
             # Once its shown, mark this dialog as accepted (And by extension, close it.)
             self.accept()
 
 
 class CharacterSelect(QDialog):
+    character_chosen = Signal(str)
+
     def __init__(self, parent=None):
+        global client
         super(CharacterSelect, self).__init__(parent)
         self.setWindowTitle("Select A Character")
 
@@ -111,7 +155,7 @@ class CharacterSelect(QDialog):
         # Current zone
         # Money
         self.charbuttons = {}
-        for char in client.get_characters():
+        for char in client.characters:
             button = QPushButton()
             button.setText(char)
             button.setIcon(QIcon.fromTheme('applications-games'))
@@ -124,32 +168,17 @@ class CharacterSelect(QDialog):
             layout.addWidget(w)
         self.setLayout(layout)
 
+        self.character_chosen.connect(qtclient.choose_char)
+
     def select_character(self, char):
-        print "Selected %s" % char
-
-        zone = client.get_zone(charname=char)
-        print "Player is in the %s zone." % zone
-
-        currentzone = client.get_zoneserver(zone)
-        print "Connecting to zoneserver: %s" % currentzone
-
-        # Initialize the world viewer
-        global worldviewer
-        worldviewer = WorldViewer(charname=char, currentzone=currentzone)
-        global worldviewerdebug
-        worldviewerdebug = WorldViewerDebug(worldviewer)
-        global adminpanel
-        adminpanel = AdminPanel(charname=char, currentzone=currentzone)
-        worldviewerdebug.show()
-        worldviewer.show()
-        adminpanel.show()
-
+        self.character_chosen.emit(char)
         # We're all done here.
         self.accept()
 
 
 class WorldViewerDebug(QDialog):
     def __init__(self, worldviewer, parent=None):
+        global client
         super(WorldViewerDebug, self).__init__(parent)
 
         self.setWindowTitle("World Viewer Debug")
@@ -415,21 +444,27 @@ class AdminPanel(WorldViewer):
         self.view.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
 
 
-# Create a Qt application
-app = QApplication(sys.argv)
+if __name__ == "__main__":
+    # Create a Qt application
+    app = QApplication(sys.argv)
 
-# Show form for logging in
-login_form = LoginForm()
-login_form.show()
+    # make a client instance:
+    client = Client()
 
-# Show list of characters, and maybe a graphics view of them.
-charselect = None
+    # Show form for logging in
+#     login_form = LoginForm()
+#     login_form.show()
+    qtclient = QtClient()
+    qtclient.open_login()
 
-# Create a QGraphicsScene and View and show it.
-worldviewerdebug = None
-worldviewer = None
+    # Show list of characters, and maybe a graphics view of them.
+    charselect = None
 
-# Enter Qt application main loop
-app.exec_()
-sys.exit()
+    # Create a QGraphicsScene and View and show it.
+    worldviewerdebug = None
+    worldviewer = None
+
+    # Enter Qt application main loop
+    app.exec_()
+    sys.exit()
 
