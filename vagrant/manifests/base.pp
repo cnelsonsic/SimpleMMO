@@ -116,7 +116,8 @@ class libtcod {
         require     => [Exec['build libtcod'],],
     }
 }
-include libtcod
+# Commenting out because it's not needed right now.
+#include libtcod
 
 # Make sure mongodb has a folder
 file { '/home/vagrant/SimpleMMO/mongodb':
