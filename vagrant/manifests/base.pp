@@ -27,7 +27,8 @@ service { 'mongodb':
 }
 
 # Pull down the source
-exec { 'git clone git://github.com/cnelsonsic/SimpleMMO.git':
+exec { 'clone simplemmo':
+    command => 'git clone git://github.com/cnelsonsic/SimpleMMO.git',
     cwd     => '/home/vagrant',
     path    => $::path,
     creates => '/home/vagrant/SimpleMMO/.git/',
@@ -128,7 +129,7 @@ file { '/home/vagrant/SimpleMMO':
     owner   => 'vagrant',
     group   => 'vagrant',
     mode    => 700,
-    require => Exec['git clone git://github.com/cnelsonsic/SimpleMMO.git'],
+    require => Exec['clone simplemmo'],
 }
 
 # TODO: Copy over sentry's config.
