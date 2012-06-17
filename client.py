@@ -16,6 +16,10 @@ class InteractiveClient(Cmd):
               make_option('-e', '--email', type="string", default=None, help="The email for the user."),
              ])
     def do_register(self, args, opts=None):
+        '''Register a username and password combination so you can log in.
+        You only need to do this once per user you want to create.
+        Calling this more than once with the same arguments will generate
+        an error at worst, and be ignored at best.'''
         if not opts:
             username, password, email = args.split(" ")
         else:
@@ -37,6 +41,7 @@ class InteractiveClient(Cmd):
               make_option('-p', '--password', type="string", help="The password for the user."),
              ])
     def do_login(self, args, opts=None):
+        '''Log in as a given user.'''
         if not opts:
             username, password = args.split(' ')
         else:
