@@ -110,6 +110,15 @@ class TestClient(IntegrationBase):
         result = c.ping()
         self.assertTrue(result)
 
+    def test_bad_ping(self):
+        '''Pinging a bogus authserver should return False.'''
+        oldserver = settings.AUTHSERVER
+        clientlib.settings.AUTHSERVER = "http://127.0.0.1:53000"
+        c = clientlib.Client()
+        result = c.ping()
+        self.assertFalse(result)
+        clientlib.settings.AUTHSERVER = oldserver
+
     def test_authenticate(self):
         '''Authenticating after initting Client should work.'''
         c = clientlib.Client()

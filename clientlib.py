@@ -62,7 +62,7 @@ import datetime
 import json
 import requests
 import logging
-logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.ERROR)
 
 import settings
 
@@ -76,6 +76,10 @@ class RegistrationError(ClientError):
 
 
 class AuthenticationError(ClientError):
+    pass
+
+
+class ConnectionError(ClientError):
     pass
 
 
@@ -144,7 +148,7 @@ class Client(object):
                 raise AuthenticationError("Authentication failed with credentials: '%s':'%s'" % (username, password))
 
     def init_logging(self):
-        self.logger = logging.getLogger('client')
+        self.logger = logging.getLogger('clientlib')
 
     def log(self, level, message, *args, **kwargs):
         self.logger.log(level, message, *args, **kwargs)
@@ -152,20 +156,37 @@ class Client(object):
     def info(self, message):
         self.log(logging.INFO, message)
 
+    def error(self, message):
+        self.log(logging.ERROR, message)
+
     def post(self, *args, **kwargs):
         url = ''.join(args)
-        r = requests.post(url, **kwargs)
+        try:
+            r = requests.post(url, **kwargs)
+        except requests.ConnectionError:
+            self.error("Host {0} is unreachable."
+                       .format(url))
+            raise ConnectionError
         self.info("POST: %s (%r)" % (url, kwargs))
         return r
 
     def get(self, *args, **kwargs):
         url = ''.join(args)
-        r = requests.get(''.join(args), **kwargs)
-        self.info("POST: %s (%r)" % (url, kwargs))
+        try:
+            r = requests.get(url, **kwargs)
+        except requests.ConnectionError:
+            self.error("Host {0} is unreachable."
+                       .format(url))
+            raise ConnectionError
+        self.info("GET: %s (%r)" % (url, kwargs))
         return r
 
     def ping(self):
-        r = self.get(settings.AUTHSERVER, '/ping')
+        try:
+            r = self.get(settings.AUTHSERVER, '/ping')
+        except ConnectionError:
+            return False
+
         if r.content == 'pong':
             return True
         else:
@@ -177,6 +198,7 @@ class Client(object):
 
         data = {"username": username, "password": password, "email": email}
         r = self.post(settings.AUTHSERVER, "/register", data=data)
+
         if r.status_code == 200:
             self.last_user = username
             return str(r.content)
@@ -186,6 +208,7 @@ class Client(object):
     def authenticate(self, username, password):
         data = {"username": username, "password": password}
         r = self.post(settings.AUTHSERVER, "/login", data=data)
+
         if r.status_code == 200:
             self.cookies.update({'user': r.cookies.get('user')})
             self._populate_characters()
@@ -197,6 +220,7 @@ class Client(object):
     def _populate_characters(self):
         '''Get the characters for the currently logged in.'''
         r = self.get(settings.AUTHSERVER, "/characters", cookies=self.cookies)
+
         if r.status_code == 200:
             for charname in json.loads(r.content):
                 self.characters[charname] = Character(charname)
@@ -240,6 +264,7 @@ class Client(object):
             pass
 
         r = self.get(settings.ZONESERVER, "/%s" % zoneid, cookies=self.cookies)
+
         if r.status_code == 200:
             zoneurl = r.content
             if zoneurl == "":
