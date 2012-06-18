@@ -132,16 +132,16 @@ class Client(object):
     def __init__(self, username=None, password=None):
         self.init_logging()
 
-        self.last_user = None
-
         self.characters = {}
         self.last_character = None
 
+        self.last_zone = None
         self.zones = {}
 
         self.last_object_update = datetime.datetime(2010, 1, 1)
         self.objects = {}
 
+        self.last_user = None
         self.cookies = {}
         if username and password:
             if not self.authenticate(username=username, password=password):
@@ -210,6 +210,7 @@ class Client(object):
         r = self.post(settings.AUTHSERVER, "/login", data=data)
 
         if r.status_code == 200:
+            self.last_user = username
             self.cookies.update({'user': r.cookies.get('user')})
             self._populate_characters()
             return True
@@ -304,7 +305,7 @@ class Client(object):
         char = self.get_char_obj(character_name=character)
 
         if not char.zone:
-            raise ClientError("Unknown zone value for character. Call get_zone first.")
+            self.get_zone(character)
 
         if char.online != status:
             data = {'character': char.name, 'status': status}

@@ -212,7 +212,6 @@ class TestClient(IntegrationBase):
     def test_set_character_status(self):
         '''Client can update its objects.'''
         c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        c.get_zone_url(c.get_zone(self.character))
         c.get_objects()
         result = c.set_character_status(self.character, 'online')
         self.assertTrue(result)
@@ -222,7 +221,6 @@ class TestClient(IntegrationBase):
         '''Client can move a character.'''
         c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         character = self.character
-        c.get_zone(character)
         c.set_character_status(character, 'online')
         result = c.move_character(character, 100, 100, 100)
 
@@ -232,7 +230,6 @@ class TestClient(IntegrationBase):
         '''Client can try to move a character, but fail due to physics.'''
         c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         character = self.character
-        c.get_zone(character)
         c.set_character_status(character, 'online')
         result = c.move_character(character)
 
