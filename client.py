@@ -4,6 +4,7 @@ logging.basicConfig()
 # We don't care about clientlib logging.
 logging.getLogger('clientlib').setLevel(logging.CRITICAL)
 import clientlib
+import settings
 
 class InteractiveClient(Cmd):
     client = clientlib.Client()
@@ -56,8 +57,8 @@ class InteractiveClient(Cmd):
         if result:
             self.pfeedback(result)
 
-    @options([make_option('-u', '--username', type="string", help="The user you want to log in as."),
-              make_option('-p', '--password', type="string", help="The password for the user."),
+    @options([make_option('-u', '--username', type="string", default=settings.DEFAULT_USERNAME, help="The user you want to log in as."),
+              make_option('-p', '--password', type="string", default=settings.DEFAULT_PASSWORD, help="The password for the user."),
              ])
     def do_login(self, args, opts=None):
         '''Log in as a given user.'''
