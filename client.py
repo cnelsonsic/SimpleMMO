@@ -11,6 +11,25 @@ class InteractiveClient(Cmd):
     debug = True
     prompt = " > "
 
+    def format_prompt(self, username='', character='', zone=''):
+        if not username:
+            username = self.client.last_user
+        if not character:
+            character = self.client.last_character
+        if not zone:
+            # We want the actual name of the zone instead of the url.
+            for zoneid, zone in self.client.zones.iteritems():
+                if zone == self.client.last_zone:
+                    # The instance type and instance owner are implied,
+                    # So we only want the actual zone name.
+                    zone = zoneid.split('-')[1]
+                    break
+            zone = '@{0}'.format(zone) if zone else ''
+
+        retval = "{username}:{character}{zone}> ".format(username=username, character=character, zone=zone)
+        self.prompt = retval
+        return retval
+
     @options([make_option('-u', '--username', type="string", help="The name of the user you want to register."),
               make_option('-p', '--password', type="string", help="The password for the user."),
               make_option('-e', '--email', type="string", default=None, help="The email for the user."),
