@@ -82,7 +82,11 @@ class InteractiveClient(Cmd):
             self.pfeedback("Authentication successful. You are now logged in as {0}."
                            .format(repr(username)))
 
-        self.prompt = "{0} > ".format(username)
+        character = self.select(self.client.characters, 'Select a Character: ')
+        self.client.last_character = character
+        self.client.set_character_status(character)
+
+        self.format_prompt()
 
 
 if __name__ == "__main__":
