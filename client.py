@@ -1,3 +1,4 @@
+from __future__ import division
 from cmd2 import Cmd, options, make_option
 import logging
 logging.basicConfig()
@@ -30,6 +31,13 @@ class InteractiveClient(Cmd):
         retval = "{username}:{character}{zone}> ".format(username=username, character=character, zone=zone)
         self.prompt = retval
         return retval
+
+    def logged_in(self):
+        if not self.client.last_character:
+            self.perror("You are not logged in. Use 'login' to authenticate.")
+            return False
+        else:
+            return True
 
     @options([make_option('-u', '--username', type="string", help="The name of the user you want to register."),
               make_option('-p', '--password', type="string", help="The password for the user."),
@@ -82,11 +90,85 @@ class InteractiveClient(Cmd):
             self.pfeedback("Authentication successful. You are now logged in as {0}."
                            .format(repr(username)))
 
-        character = self.select(self.client.characters, 'Select a Character: ')
+        if args:
+            character = self.client.characters[list(self.client.characters)[int(args)]].name
+        else:
+            character = self.select(self.client.characters, 'Select a Character: ')
         self.client.last_character = character
         self.client.set_character_status(character)
 
+        self.client.get_objects()
+
         self.format_prompt()
+
+    def do_update(self, args):
+        '''Update all the things that can be updated.
+        This includes objects only at the moment.'''
+        if not self.logged_in():
+            return
+
+        self.client.get_objects()
+        # TODO: Get messages too.
+
+    def do_map(self, args):
+        '''Renders a map of the zone your character is currently in.
+        By default this is ascii, but you can also ask it to render to an image.'''
+        if not self.logged_in():
+            return
+
+        # Get bounds (maxx, maxy, minx, miny) of all objects in the zone
+        maxx = 0
+        maxy = 0
+        minx = 0
+        miny = 0
+        goodobjs = []
+        for objid, obj in self.client.objects.iteritems():
+            try:
+                objloc = obj['loc']
+            except KeyError:
+                # Some objects have no location, so skip em.
+                continue
+
+            try:
+                if 'hidden' in obj['states']:
+                    # Skip hidden objects.
+                    continue
+            except KeyError:
+                # Stuff without states are A-OK
+                pass
+
+            maxx = max(maxx, objloc['x'])
+            maxy = max(maxy, objloc['y'])
+            minx = min(minx, objloc['x'])
+            miny = min(miny, objloc['y'])
+            goodobjs.append(obj)
+
+        xlen, ylen = maxx-minx, maxy-miny
+
+        deltax = maxx-minx
+        deltay = maxy-miny
+        mapsizex = 30
+        mapsizey = 72
+
+        import numpy
+        numpy.set_printoptions(threshold='nan')
+        maparray = numpy.array([['.']*mapsizey]*mapsizex)
+
+        # Normalize all the positions.
+        names = {}
+        for obj in goodobjs:
+            # Stupid rounding here, but good enough.
+            x = int(((obj['loc']['x']-minx)/deltax)*mapsizex)
+            y = int(((obj['loc']['y']-miny)/deltay)*mapsizey)
+            try:
+                name = names[obj['resource']]
+            except KeyError:
+                name = obj['resource'][0]
+                names[obj['resource']] = name
+            maparray[x-1, y-1] = name
+
+        mapstring = '\n'.join([''.join([y for y in x]) for x in maparray])
+        self.poutput(mapstring)
 
 
 if __name__ == "__main__":
