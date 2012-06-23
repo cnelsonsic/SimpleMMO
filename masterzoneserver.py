@@ -113,9 +113,10 @@ class ZoneHandler(BaseHandler):
 
             elif START_ZONE_WITH == SUBPROCESS:
                 logging.info("Starting process with subprocess.")
-                from start_subprocess import start_zone
-                s, serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
-                JOBS.append(s)
+                from start_subprocess import start_zone, start_scriptserver
+                z, serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
+                s = start_scriptserver(zonename=name, instancetype=instance_type, owner=owner)
+                JOBS.extend([z, s])
 
         # Wait for server to come up
         # Just query it on "/" every hundred ms or so.

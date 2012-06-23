@@ -51,6 +51,14 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
     s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return s, url
 
+def start_scriptserver(zonename="defaultzone", instancetype="playerinstance", owner="Groxnor"):
+
+    args = ['scriptserver.py', '%s-%s-%s' % (instancetype, zonename, owner)]
+    cmd = [sys.executable]+args
+    logging.info("Starting %s" % ' '.join(args))
+    s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return s
+
 if __name__ == "__main__":
     if start_zone():
         print "Started zone successfully."
