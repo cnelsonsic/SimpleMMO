@@ -1,7 +1,7 @@
 
 from games.objects.basescript import Script
 
-from games.objects.basezone import randloc, randrot, randscale
+from games.zones.basezone import randloc, randrot, randscale
 from mongoengine_models import ScriptedObject
 from mongoengine_models import IntVector, FloatVector
 
