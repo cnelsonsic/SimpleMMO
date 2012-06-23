@@ -152,7 +152,7 @@ class InteractiveClient(Cmd):
             # Default is fullscreen
             import os
             rows, columns = os.popen('stty size', 'r').read().split()
-            mapsizex = int(int(rows)/2)-1
+            mapsizex = int(rows)-2
             mapsizey = int(columns)-1
         else:
             # Otherwise use whatever args are passed.
