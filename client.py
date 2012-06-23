@@ -147,14 +147,22 @@ class InteractiveClient(Cmd):
 
         deltax = maxx-minx
         deltay = maxy-miny
-        mapsizex = 30
-        mapsizey = 72
+
+        if not args:
+            # Default is fullscreen
+            import os
+            rows, columns = os.popen('stty size', 'r').read().split()
+            mapsizex = int(int(rows)/2)-1
+            mapsizey = int(columns)-1
+        else:
+            # Otherwise use whatever args are passed.
+            mapsizex, mapsizey = [int(n) for n in args.split()]
 
         import numpy
-        numpy.set_printoptions(threshold='nan')
+        # Build out the default array.
         maparray = numpy.array([['.']*mapsizey]*mapsizex)
 
-        # Normalize all the positions.
+        # This places the objects in the array based on their relative position.
         names = {}
         for obj in goodobjs:
             # Stupid rounding here, but good enough.
@@ -167,6 +175,7 @@ class InteractiveClient(Cmd):
                 names[obj['resource']] = name
             maparray[x-1, y-1] = name
 
+        # Make a string because printing manually is dumb.
         mapstring = '\n'.join([''.join([y for y in x]) for x in maparray])
         self.poutput(mapstring)
 
