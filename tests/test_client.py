@@ -238,6 +238,18 @@ class TestClient(IntegrationBase):
     def test_main(self):
         self.assertTrue(clientlib.main(ticks=5))
 
+    def get_linnea(self, objects):
+        linnea = None
+        for obj_id, obj in objects.iteritems():
+            if obj.get('name') == 'Linnea':
+                linnea = obj
+                linnea_id = obj.get('_id', {}).get('$oid')
+                break
+
+        linnea['id'] = linnea_id
+        return linnea
+
+
     def test_activation(self):
         '''Client can activate an object.'''
         c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
@@ -250,15 +262,35 @@ class TestClient(IntegrationBase):
 
         c.get_objects()
 
-        linnea = None
-        for obj_id, obj in c.objects.iteritems():
-            if obj.get('name') == 'Linnea':
-                linnea = obj
-                linnea_id = obj.get('_id', {}).get('$oid')
-                break
+        linnea = self.get_linnea(c.objects)
 
         self.assertTrue(linnea)
-        self.assertTrue(c.activate(linnea_id))
+        self.assertTrue(c.activate(linnea['id']))
+
+    def test_scriptserver(self):
+        '''Client can see the ScriptServer updating objects.'''
+        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        character = self.character
+        # Override the character's zone:
+        zone = 'playerinstance-AdventureDungeon-%s' % character
+        c.characters[character].zone = zone
+        c.set_online(character)
+
+        c.get_objects()
+
+        linnea = self.get_linnea(c.objects)
+        # Wait a bit for Linnea to wander about.
+        import time
+        time.sleep(0.1)
+
+        c.get_objects()
+        updated_linnea = self.get_linnea(c.objects)
+        self.assertTrue(updated_linnea)
+        self.assertNotEqual(linnea['loc'], updated_linnea['loc'])
+
+        # Any of the three x, y and z values should not match.
+        matches = any([linnea['loc'][attr] != updated_linnea['loc'][attr] for attr in ('x', 'y', 'z')])
+        self.assertTrue(matches)
 
 
 if __name__ == '__main__':

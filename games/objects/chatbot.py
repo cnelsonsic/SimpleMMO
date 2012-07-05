@@ -25,6 +25,7 @@ class ChatBot(Script):
     def tick(self):
         if self.roll("1d100") >= 90:
             self.rand_say(self.idle_chat)
+        self.wander()
 
     def activate(self, character):
         self.rand_say(self.activation)

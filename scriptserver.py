@@ -25,10 +25,18 @@ This is started by the MasterZoneServer when its sibling ZoneServer is started.
 '''
 
 import time
+import logging
+logger = logging.getLogger('ScriptServer')
+hdlr = logging.FileHandler('log/scriptserver.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
+
 
 import mongoengine as me
 
-from mongoengine_models import ScriptedObject, Message
+from mongoengine_models import ScriptedObject, Message, Object
 from games.objects.basescript import Script
 
 from settings import CLIENT_UPDATE_FREQ, MAX_ZONE_OBJECT_MESSAGE_COUNT
@@ -53,9 +61,12 @@ class ZoneScriptRunner(BaseTickServer):
                 # Mongo's not up yet. Give it time.
                 time.sleep(.1)
 
-        print "Started with data for zone: %s" % zoneid
+        # While the zone is not loaded, wait.
+        while not Object.objects(name="Loading Complete."):
+            time.sleep(.1)
 
         self.load_scripts()
+        logger.info("Started with data for zone: %s" % zoneid)
 
     def load_scripts(self):
         '''(Re)Load scripts for objects in this zone.'''
@@ -63,13 +74,14 @@ class ZoneScriptRunner(BaseTickServer):
 
         # Query DB for a list of all objects' script names,
         #   ordered according to proximity to players
+        logger.info(ScriptedObject.objects)
         for o in ScriptedObject.objects(scripts__exists=True):
-            print "Scripted Object:", o.name
+            logger.info("Scripted Object: {0}".format(o.name))
             # Store list of script names in self
 
             # For each script name in the list:
             for script in o.scripts:
-                print "Importing %s" % script
+                logger.info("Importing %s" % script)
                 if script not in self.scripts:
                     self.scripts[script] = []
 
@@ -97,19 +109,19 @@ class ZoneScriptRunner(BaseTickServer):
     def tick(self):
         '''Iterate through all known scripts and call their tick method.'''
         # Tick all the things
-#         print time.time()
         for scriptname, scripts in self.scripts.items():
             for script in scripts:
+                logger.info("Ticking {0}".format(script))
                 # TODO: Pass some locals or somesuch so that they can query the db
                 script.tick()
 
         # Clean up mongodb's messages by deleting all but the most recent 100 non-player messages
         for m in Message.objects(player_generated=False).order_by('-sent')[MAX_ZONE_OBJECT_MESSAGE_COUNT:]:
-            print "Deleting message from %s" % m.sent.time()
+            logger.info("Deleting message from %s" % m.sent.time())
             m.delete()
 
     def start(self):
-        print "Running ZoneScript Server."
+        logger.info("Running ZoneScript Server.")
         super(ZoneScriptRunner, self).start()
 
 if __name__ == "__main__":
