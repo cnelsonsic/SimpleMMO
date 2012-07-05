@@ -68,6 +68,7 @@ START_ZONE_WITH = SUBPROCESS
 # ScriptServer Settings
 MAX_ZONE_OBJECT_MESSAGE_COUNT = 1000
 MAX_DICE_AMOUNT = 100
+SCRIPT_PATH = "./games/" # If this is defined, watch it for changes, and reload scripts when this changes.
 
 # Client Settings
 CLIENT_TIMEOUT = 10 # Client gives up connecting after 10 seconds.

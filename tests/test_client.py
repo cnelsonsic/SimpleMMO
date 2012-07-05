@@ -279,6 +279,7 @@ class TestClient(IntegrationBase):
         c.get_objects()
 
         linnea = self.get_linnea(c.objects)
+
         # Wait a bit for Linnea to wander about.
         import time
         time.sleep(0.1)
