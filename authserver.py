@@ -160,7 +160,35 @@ class RegistrationHandler(BaseHandler):
 
 class AuthHandler(BaseHandler):
     '''AuthHandler authenticates a user and sets a session in the database.
-            GET /login'''
+
+    .. http:post:: /login
+
+        Creates a User in the AuthenticationServer's database.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            POST /login HTTP/1.1
+
+            username=asdf&password=asdf
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Set-Cookie: user="VXNlcm5hbWU=|1341639882|ec1af42349272b09f4f7ebb1be4da826500d1f6c"; expires=Mon, 06 Aug 2012 05:44:42 GMT; Path=/
+
+            Login successful.
+
+
+        :param username: The name of the user to log in as.
+        :param password: The password to use for authenticating the user.
+
+        :status 200: Login successful.
+        :status 401: Login failed due to bad username and/or password
+        '''
     def post(self):
         username = self.get_argument("username", "")
         password = self.get_argument("password", "")
