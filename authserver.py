@@ -227,7 +227,27 @@ class AuthHandler(BaseHandler):
 
 class LogoutHandler(BaseHandler):
     '''Unsets the user's cookie.
-            GET /logout'''
+
+    .. http:post:: /logout
+
+        Creates a User in the AuthenticationServer's database.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            GET /logout HTTP/1.1
+
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Set-Cookie: user=; expires=Mon, 06 Aug 2012 05:44:42 GMT; Path=/
+
+        :status 200: Successfully logged out.
+    '''
     def get(self):
         self.clear_cookie("user")
 
