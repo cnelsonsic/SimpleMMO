@@ -124,8 +124,33 @@ GET /characters</p>
 <dl class="class">
 <dt id="authserver.LogoutHandler">
 <em class="property">class </em><tt class="descclassname">authserver.</tt><tt class="descname">LogoutHandler</tt><big>(</big><em>application</em>, <em>request</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/authserver.html#LogoutHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#authserver.LogoutHandler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Unsets the user&#8217;s cookie.
-GET /logout</p>
+<dd><p>Unsets the user&#8217;s cookie.</p>
+<dl class="post">
+<dt id="post--logout">
+<tt class="descname">POST </tt><tt class="descname">/logout</tt><a class="headerlink" href="#post--logout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a User in the AuthenticationServer&#8217;s database.</p>
+<p><strong>Example request</strong>:</p>
+<div class="highlight-http"><div class="highlight"><pre><span class="nf">GET</span> <span class="nn">/logout</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</pre></div>
+</div>
+<p><strong>Example response</strong>:</p>
+<div class="highlight-http"><div class="highlight"><pre><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
+<span class="na">Set-Cookie</span><span class="o">:</span> <span class="l">user=; expires=Mon, 06 Aug 2012 05:44:42 GMT; Path=/</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Status Codes:</th><td class="field-body"><ul class="first last simple">
+<li><strong>200</strong> &#8211; Successfully logged out.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
