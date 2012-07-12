@@ -90,7 +90,7 @@ class ZoneHandler(BaseHandler):
                 if status == 200:
                     logging.info("Server was already up and in the db: %s" % serverurl)
                     break
-            except requests.ConnectionError:
+            except (requests.ConnectionError, requests.URLRequired):
                 serverurl = None
                 continue
 
@@ -142,6 +142,7 @@ class ZoneHandler(BaseHandler):
 
         # If successful, write our URL to the database and return it
         # Store useful information in the database.
+        logging.info(serverurl)
         Zone(zoneid=zoneid, port=serverurl.split(":")[-1], owner=owner, url=serverurl)
         session.commit()
         logging.info("Zone server came up at %s." % serverurl)
