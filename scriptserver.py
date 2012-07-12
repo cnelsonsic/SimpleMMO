@@ -104,18 +104,20 @@ class ZoneScriptRunner(BaseTickServer):
                 for key in dir(module):
                     C = getattr(module, key)
 
-                    try:
-                        if not issubclass(C, Script):
-                            # If it isn't a subclass of Script, continue.
-                            continue
-                    except TypeError:
-                        # If C isn't a class at all, continue.
+                    # No sense in instantiating the default Script instance.
+                    if C == Script:
                         continue
 
-                    # No sense in instantiating the default Script instance.
-                    if C != Script:
-                        # Store object instance in a list.
-                        self.scripts[script].append(C(mongo_engine_object=o))
+                    try:
+                        # Does this object have the attributes that scripts need?
+                        if not all((C.tick, C.activate, C.create)):
+                            continue
+                    except AttributeError:
+                        continue
+
+                    # Store object instance in a list.
+                    self.scripts[script].append(C(mongo_engine_object=o))
+        return self.scripts
 
 
     def tick(self):
