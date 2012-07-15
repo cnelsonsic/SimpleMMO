@@ -5,16 +5,41 @@ SimpleMMO
 
 Quick Installation
 ------------------
+### Virtualbox/Vagrant Server Appliance
+SimpleMMO ships with a virtualbox/vagrant appliance which you can spin up
+for testing or development.
+It provides a linux environment, and all the dependencies pre-configured for you.
+
+#### Installing
+You need [VirtualBox](https://www.virtualbox.org/) and [Vagrant](http://vagrantup.com/).
+
+#### Running
+When in the ``vagrant`` directory of the SimpleMMO checkout, run ``vagrant up``.
+In 5-10 minutes, you should have a shiny new development/testing server.
+You can access it via ``vagrant ssh``, which gives you a terminal inside your vagrant box.
+Discussions on using vagrant are beyond the scope of this README, so ``vagrant -h`` is your friend.
+
+#### Client
+From inside the vagrant box (via ``vagrant ssh``), you can start up the command-line client with:
+
+    ./client.py
+
+The following commands are supported:
+
+    register: Register a username and password combination.
+    login: Log in as a user.
+    update: Update the objects from the zone server.
+    map: Show a map of the zone.
+    detail: Show details about a given object by name or id.
+
+
+### Native Server Install
 You will need pip to install the requirements, you can do something like:
 
-    sudo apt-get install python-setuptools python-dev build-essential
+    sudo apt-get install python-pip
 or
 
-    sudo yum install python-setuptools python-devel gcc
-
-followed by
-
-    sudo easy_install -U pip
+    sudo yum install python-pip
 
 You'll need to use pip to install the required python packages:
 
@@ -23,13 +48,6 @@ You'll need to use pip to install the required python packages:
 SimpleMMO uses supervisor to control its server processes, so you will need to
 start them by running `supervisord` while in the SimpleMMO checkout directory.
 You can use `supervisorctl` to check up on the server processes.
-
-Alternately, you can deploy without supervisord (not recommended) and manage
-processes yourself.
-
-Finally, you can start up the administrative client with
-
-    python qtclient.py
 
 
 Servers
