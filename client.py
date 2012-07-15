@@ -1,4 +1,7 @@
+#!/usr/bin/env python2.7
 from __future__ import division
+from datetime import datetime
+from pprint import pformat
 from cmd2 import Cmd, options, make_option
 import logging
 logging.basicConfig()
@@ -178,6 +181,66 @@ class InteractiveClient(Cmd):
         # Make a string because printing manually is dumb.
         mapstring = '\n'.join([''.join([y for y in x]) for x in maparray])
         self.poutput(mapstring)
+
+    def clean_dict(self, dirty):
+        newobj = {}
+        for k, v in dirty.iteritems():
+            if type(v) == float:
+                v = float("%.4f" % v)
+
+            if type(v) == dict:
+                v = self.clean_dict(v)
+
+            if not k.startswith("_"):
+                newobj[k] = v
+        return newobj
+
+    def format_object(self, objdata):
+        newobj = {u'id': objdata['_id']['$oid']}
+        newobj.update(self.clean_dict(objdata))
+        for k, v in objdata.iteritems():
+            # Prettify the last modified timestamp
+            if k == "last_modified":
+                v = datetime.fromtimestamp(v[r'$date']/1000.0)\
+                            .strftime(settings.DATETIME_FORMAT)
+                newobj[k] = v
+
+        return pformat(newobj)
+
+    def get_match(self, objname):
+        objname = objname.lower()
+
+        # Try exact match first:
+        try:
+            obj = self.client.objects[objname]
+            return obj
+        except KeyError:
+            # Couldn't find the exact match.
+            pass
+
+        # Try startswith match next:
+        for objid, obj in self.client.objects.iteritems():
+            if objid.lower().startswith(objname) or obj['name'].lower().startswith(objname):
+                return obj
+
+        # Try contains match next:
+        for objid, obj in self.client.objects.iteritems():
+            if objname in objid.lower() or objname in obj['name'].lower():
+                return obj
+
+        # Couldn't find anything.
+        return False
+
+    def do_detail(self, args):
+        '''Pass in the name or id of the object you want to look at.'''
+        objname = args
+        if objname:
+            obj = self.get_match(objname)
+
+            if obj:
+                self.poutput(self.format_object(obj))
+            else:
+                self.perror("Could not find anything resembling {0}.".format(objname))
 
 
 if __name__ == "__main__":
