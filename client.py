@@ -31,9 +31,12 @@ class InteractiveClient(Cmd):
                     break
             zone = '@{0}'.format(zone) if zone else ''
 
-        retval = "{username}:{character}{zone}> ".format(username=username, character=character, zone=zone)
-        self.prompt = retval
-        return retval
+        prompt_string = " {username}:{character}{zone} ({num_objs})> "
+        self.prompt = prompt_string.format(username=username,
+                                           character=character,
+                                           zone=zone,
+                                           num_objs=len(self.client.objects))
+        return self.prompt
 
     def logged_in(self):
         if not self.client.last_character:
@@ -119,6 +122,8 @@ class InteractiveClient(Cmd):
         if not self.logged_in():
             return
 
+        self.update()
+
         # Get bounds (maxx, maxy, minx, miny) of all objects in the zone
         maxx = 0
         maxy = 0
@@ -183,6 +188,7 @@ class InteractiveClient(Cmd):
         self.poutput(mapstring)
 
     def clean_dict(self, dirty):
+        '''Clean up ugly values and drop private keys.'''
         newobj = {}
         for k, v in dirty.iteritems():
             if type(v) == float:
@@ -196,6 +202,7 @@ class InteractiveClient(Cmd):
         return newobj
 
     def format_object(self, objdata):
+        '''Pretty-print an object from the client.'''
         newobj = {u'id': objdata['_id']['$oid']}
         newobj.update(self.clean_dict(objdata))
         for k, v in objdata.iteritems():
@@ -208,6 +215,9 @@ class InteractiveClient(Cmd):
         return pformat(newobj)
 
     def get_match(self, objname):
+        '''Get a matching object from the client for a given id or name.
+        It matches based on exact matches, starts with or contains,
+        in that order.'''
         objname = objname.lower()
 
         # Try exact match first:
