@@ -26,8 +26,9 @@ class TestClient(IntegrationBase):
         # Calling the supermethod so that we get servers.
         super(TestClient, cls).setUpClass()
 
-        # Set the default character name.
-        cls.character = 'Graxnor'
+        # Create a character for the default user.
+        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        cls.character = c.create_character("Graxnor")
 
     def setUp(self):
         super(TestClient, self).setUp()
@@ -103,6 +104,16 @@ class TestClient(IntegrationBase):
             with self.assertRaises(clientlib.RegistrationError) as cm:
                 c.register(username="gooduser", password="goodpass", email="test@example.com")
             self.assertIn('User already exists.', cm.exception.message)
+
+    def test_create(self):
+        '''Create a character.
+        Not only must the create_character function return the character name
+        the server created, but also update the client's characters dict.'''
+        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        expected = "Cuddlepums"
+        result = c.create_character(character_name=expected)
+        self.assertEqual(result, expected)
+        self.assertIn(expected, c.characters)
 
     def test_ping(self):
         '''Pinging the authserver should work.'''

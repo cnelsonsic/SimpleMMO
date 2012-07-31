@@ -40,7 +40,7 @@ import settings
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-from elixir_models import User, session
+from elixir_models import session, Character, User
 
 # TODO: Make an SQLCharacterController
 
@@ -261,8 +261,11 @@ class CharacterHandler(BaseHandler):
         self.write(json.dumps(self.get_characters(self.get_current_user())))
 
     def get_characters(self, username):
-        '''Queries the database for all characters owned by a particular username.'''
-        return ['Graxnor', 'Rumtiddlykins']
+        '''Queries the database for all characters owned by a particular user.'''
+        user = User.query.filter_by(username=username).first()
+        characters = Character.query.filter_by(user=user).all()
+        logging.info(characters)
+        return [c.name for c in characters]
 
 
 if __name__ == "__main__":

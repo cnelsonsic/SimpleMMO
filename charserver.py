@@ -27,14 +27,19 @@ For example, getting which zone a character is currently in.
 # TODO: Write a function to pull in the docstrings from defined classes here and 
 # append them to the module docstring
 
+import logging
+import tornado
+
 import json
+
+from elixir_models import User, Character, session
 
 from settings import CHARSERVERPORT
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 class CharacterZoneHandler(BaseHandler):
-    '''CharacterHandler gets information for a given character.'''
+    '''CharacterZoneHandler gets zone information for a given character.'''
 
     def get(self, character):
         self.write(json.dumps(self.get_zone(character)))
@@ -47,24 +52,54 @@ class CharacterZoneHandler(BaseHandler):
 
     # TODO: Add character online/offline status
 
+class CharacterCreationHandler(BaseHandler):
+    '''CharacterHandler handles character creation.'''
+
+    @tornado.web.authenticated
+    def post(self):
+        character_name = self.get_argument("character_name")
+        character_name = self.create(character_name)
+        if character_name is False:
+            # Creating the character was prohibited.
+            raise tornado.web.HTTPError(400, 'Character already exists.')
+        elif not character_name:
+            # Creating the character failed outright.
+            raise tornado.web.HTTPError(400, 'Creating character failed.')
+
+        self.write(character_name)
+
+    def create(self, character_name):
+        logging.info("Creating a character named %s" % character_name)
+        user = User.query.filter_by(username=self.get_current_user()).first()
+        if not user:
+            return
+
+        if Character.query.filter_by(name=character_name).first():
+            return False
+
+        character = Character(user=user, name=character_name)
+        session.commit()
+        logging.info("Created a character %s" % character)
+        return character.name
+
 if __name__ == "__main__":
-    import tornado
     from tornado.options import options, define
     define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
 
     tornado.options.parse_command_line()
     dburi = options.dburi
 
-    # Connect to the elixir db
-    from elixir_models import setup
-    setup(db_uri=dburi)
-
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
+    handlers.append((r"/new", CharacterCreationHandler))
     handlers.append((r"/(.*)/zone", CharacterZoneHandler))
 
     server = BaseServer(handlers)
     server.listen(CHARSERVERPORT)
+
+    # Connect to the elixir db
+    from elixir_models import setup
+    setup(db_uri=dburi)
 
     print "Starting up Charserver..."
     server.start()

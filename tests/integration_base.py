@@ -27,6 +27,13 @@ class IntegrationBase(unittest.TestCase):
         cls.servers = []
         cls.mongodb_dir = './mongodb-unittest/'
 
+        # Wipe out the sqlite db.
+        try:
+            os.remove('testing.sqlite')
+        except OSError:
+            # Don't care if it doesn't exist
+            pass
+
         if not enough_disk():
             return
 
@@ -35,9 +42,9 @@ class IntegrationBase(unittest.TestCase):
         if not os.path.exists(cls.mongodb_dir):
             os.mkdir(cls.mongodb_dir)
         servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=%s' % cls.mongodb_dir]
-        servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=sqlite://']
-        servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=sqlite://']
-        servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=sqlite://']
+        servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=sqlite:///testing.sqlite']
+        servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=sqlite:///testing.sqlite']
+        servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=sqlite:///testing.sqlite']
         for uri, args in servers.iteritems():
             if sys.executable in args:
                 args.extend(['--log-file-prefix=log/%s.log' % args[1], '--logging=info'])

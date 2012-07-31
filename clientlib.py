@@ -218,12 +218,35 @@ class Client(object):
             self.cookies = {}
             return False
 
+    def create_character(self, character_name):
+        '''Create a character. Think of this as making a "new file".
+        Character data (statistic points, race, class, etc) is set later.
+        '''
+        data = {'character_name': character_name}
+        r = self.post(settings.CHARSERVER, "/new", cookies=self.cookies, data=data)
+
+        if r.status_code == 400 or not r.content:
+            raise ClientError("Creating character %s failed: %s" % (character_name, r.content))
+        elif r.status_code != 200:
+            print r.status_code, r.content
+            raise UnexpectedHTTPStatus("CharServer", r.status_code, r.content)
+
+        self.info("Creating a character named %s" % character_name)
+        self._populate_characters()
+        return r.content
+
+
     def _populate_characters(self):
         '''Get the characters for the currently logged in.'''
         r = self.get(settings.AUTHSERVER, "/characters", cookies=self.cookies)
 
         if r.status_code == 200:
-            for charname in json.loads(r.content):
+            content = json.loads(r.content)
+            if not content:
+                # When authenticating for the first time there will be no characters.
+                return
+
+            for charname in content:
                 self.characters[charname] = Character(charname)
                 self.last_character = charname
 
@@ -375,6 +398,8 @@ def main(ticks=10):
 
     if c.authenticate(username, password) is True:
         print "authenticated"
+
+    print"Created a character named %s" % c.create_character("Kilroxor")
 
     # Freakin' automatic.
     print "Got %s as characters." % c.characters
