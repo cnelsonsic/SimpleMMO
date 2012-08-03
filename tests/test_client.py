@@ -304,6 +304,23 @@ class TestClient(IntegrationBase):
         matches = any([linnea['loc'][attr] != updated_linnea['loc'][attr] for attr in ('x', 'y', 'z')])
         self.assertTrue(matches)
 
+    def test_get_messages(self):
+        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+        character = self.character
+        # Override the character's zone:
+        zone = 'playerinstance-AdventureDungeon-%s' % character
+        c.characters[character].zone = zone
+        c.set_online(character)
+        c.get_objects()
+
+        # Poke Linnea to make her talk
+        linnea = self.get_linnea(c.objects)
+        c.activate(linnea['id'])
+
+        c.get_messages()
+        self.assertTrue(c.messages)
+
+
 
 if __name__ == '__main__':
     unittest.main()

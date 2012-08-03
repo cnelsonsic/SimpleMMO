@@ -141,6 +141,9 @@ class Client(object):
         self.last_object_update = datetime.datetime(2010, 1, 1)
         self.objects = {}
 
+        self.last_message_update = datetime.datetime(2010, 1, 1)
+        self.messages = {}
+
         self.last_user = None
         self.cookies = {}
         if username and password:
@@ -323,6 +326,30 @@ class Client(object):
 
         self.last_object_update = datetime.datetime.now()
         return objects
+
+    def get_messages(self, zone=None):
+        '''Get messages from the zone only.
+        In the future, get game-wide messages.'''
+        if zone is None:
+            zone = self.get_zone_url()
+
+        if "http://" not in zone:
+            # zone is probably a zoneid
+            zone = self.zones.get(zone)
+
+        data = {"since": self.last_message_update.strftime(settings.DATETIME_FORMAT)}
+        r = self.get(zone, '/messages', cookies=self.cookies, params=data)
+
+        if r.status_code == 200:
+            messages = json.loads(r.content)
+            for msg in messages:
+                msgid = msg.get('_id', {}).get('$oid')
+                self.messages[msgid] = msg
+        else:
+            raise UnexpectedHTTPStatus("ZoneServer %s" % zone, r.status_code, r.content)
+
+        self.last_message_update = datetime.datetime.now()
+        return messages
 
     def set_character_status(self, character, status='online'):
         char = self.get_char_obj(character_name=character)

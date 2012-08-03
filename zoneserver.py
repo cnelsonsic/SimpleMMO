@@ -49,7 +49,7 @@ from pymongo import json_util
 
 import mongoengine as me
 
-from mongoengine_models import Character, Object, IntVector, ScriptedObject
+from mongoengine_models import Character, Object, IntVector, ScriptedObject, Message
 from games.objects.basescript import Script
 
 
@@ -287,7 +287,30 @@ class AdminHandler(BaseHandler):
             raise tornado.web.HTTPError(403)
 
 class MessageHandler(BaseHandler):
-    pass
+    '''MessageHandler returns a list of messages.'''
+
+    @tornado.web.authenticated
+    def get(self):
+        since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
+        if since.year == 2010:
+            since = None
+        msgs = [m.to_mongo() for m in self.get_messages(since)]
+        retval = json.dumps(msgs, default=json_util.default)
+        self.content_type = 'application/json'
+        self.write(retval)
+
+    def get_messages(self, since=None):
+        '''Gets a list of messages in the zone.
+        Should not be called without an argument except when
+        a client connects to the zone initially.'''
+
+        # Query the mongo messages database
+        if since is not None:
+            messages = Message.objects(last_modified__gte=since)
+        else:
+            messages = Message.objects
+
+        return messages
 
 class ScriptedObjectHandler(BaseHandler):
     @tornado.web.authenticated
@@ -365,6 +388,7 @@ def main():
     handlers.append((r"/setstatus", CharStatusHandler))
     handlers.append((r"/movement", MovementHandler))
     handlers.append((r"/admin", AdminHandler))
+    handlers.append((r"/messages", MessageHandler))
     handlers.append((r"/activate/(.*)", ScriptedObjectHandler))
 
     server = BaseServer(handlers)
