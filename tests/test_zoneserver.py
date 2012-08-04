@@ -30,7 +30,7 @@ import sys
 sys.path.append(".")
 
 import zoneserver
-from zoneserver import ObjectsHandler, MovementHandler, CharacterController, ScriptedObjectHandler
+from zoneserver import MovementHandler, CharacterController, ScriptedObjectHandler, DateLimitedObjectHandler
 
 class TestCharacterControllerGetCharacter(unittest.TestCase):
     def setUp(self):
@@ -246,18 +246,18 @@ class TestCharacterControllerIsOwner(unittest.TestCase):
 
         self.assertEqual(result, None)
 
-class TestObjectsHandlerUnit(unittest.TestCase):
+class TestDateLimitedObjectHandlerUnit(unittest.TestCase):
     def setUp(self):
-        self.app = Application([('/', ObjectsHandler),])
+        self.app = Application([('/', DateLimitedObjectHandler),])
         self.req = Mock()
-        self.objects_handler = ObjectsHandler(self.app, self.req)
+        self.objects_handler = DateLimitedObjectHandler(self.app, self.req)
 
     def test_get_objects(self):
         expected = []
 
         MockObject = Mock()
         MockObject.objects = expected
-        with patch.object(zoneserver, 'Object', MockObject):
+        with patch('zoneserver.DateLimitedObjectHandler.target_object', MockObject):
             result = self.objects_handler.get_objects()
 
         self.assertEqual(expected, result)
@@ -267,7 +267,7 @@ class TestObjectsHandlerUnit(unittest.TestCase):
 
         MockObject = Mock()
         MockObject.objects = Mock(return_value=expected)
-        with patch.object(zoneserver, 'Object', MockObject):
+        with patch('zoneserver.DateLimitedObjectHandler.target_object', MockObject):
             result = self.objects_handler.get_objects(since=datetime.datetime.now())
 
         self.assertEqual(expected, result)
