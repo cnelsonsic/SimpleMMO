@@ -153,39 +153,6 @@ class CharacterController(object):
         return charobj
 
 
-class ObjectsHandler(BaseHandler):
-    '''ObjectsHandler returns a list of objects and their data.'''
-
-#     @tornado.web.authenticated
-    def head(self):
-        lastdate = Object.objects.order_by('-last_modified').first().last_modified
-        cache_time = 10*365*24*60*60 # 10 Years.
-        self.set_header('Last-Modified', lastdate)
-        self.set_header('Expires', lastdate + datetime.timedelta(seconds=cache_time))
-        self.set_header('Cache-Control', 'max-age=' + str(cache_time))
-
-    @tornado.web.authenticated
-    def get(self):
-        since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
-        if since.year == 2010:
-            since = None
-        objs = [m.to_mongo() for m in self.get_objects(since)]
-        retval = json.dumps(objs, default=json_util.default)
-        self.content_type = 'application/json'
-        self.write(retval)
-
-    def get_objects(self, since=None):
-        '''Gets a list of objects in the zone.
-        Should not be called without an argument except when
-        a client connects to the zone initially.'''
-
-        # Query the mongo objects database
-        if since is not None:
-            objects = Object.objects(last_modified__gte=since)
-        else:
-            objects = Object.objects
-
-        return objects
 
 
 class CharStatusHandler(BaseHandler):
@@ -286,31 +253,53 @@ class AdminHandler(BaseHandler):
         else:
             raise tornado.web.HTTPError(403)
 
-class MessageHandler(BaseHandler):
-    '''MessageHandler returns a list of messages.'''
+class DateLimitedObjectHandler(BaseHandler):
+    '''Gets a list of objects after a certain date.'''
+    target_object = None
+
+    def head(self):
+        lastdate = self.target_object.objects.order_by('-last_modified').first().last_modified
+        cache_time = 10*365*24*60*60 # 10 Years.
+        self.set_header('Last-Modified', lastdate)
+        self.set_header('Expires', lastdate + datetime.timedelta(seconds=cache_time))
+        self.set_header('Cache-Control', 'max-age=' + str(cache_time))
 
     @tornado.web.authenticated
     def get(self):
+        if not self.target_object:
+            raise NotImplementedError("target_object must be set to a MongoEngine model class.")
+
         since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
         if since.year == 2010:
             since = None
-        msgs = [m.to_mongo() for m in self.get_messages(since)]
-        retval = json.dumps(msgs, default=json_util.default)
+        objs = [m.to_mongo() for m in self.get_objects(since)]
+        retval = json.dumps(objs, default=json_util.default)
         self.content_type = 'application/json'
         self.write(retval)
 
-    def get_messages(self, since=None):
-        '''Gets a list of messages in the zone.
+    def get_objects(self, since=None):
+        '''Gets a list of things from the database.
         Should not be called without an argument except when
         a client connects to the zone initially.'''
 
         # Query the mongo messages database
         if since is not None:
-            messages = Message.objects(last_modified__gte=since)
+            objects = self.target_object.objects(last_modified__gte=since)
         else:
-            messages = Message.objects
+            objects = self.target_object.objects
 
-        return messages
+        return objects
+
+
+class MessageHandler(DateLimitedObjectHandler):
+    '''MessageHandler returns a list of messages.'''
+    target_object = Message
+
+
+class ObjectsHandler(DateLimitedObjectHandler):
+    '''ObjectsHandler returns a list of objects and their data.'''
+    target_object = Object
+
 
 class ScriptedObjectHandler(BaseHandler):
     @tornado.web.authenticated
