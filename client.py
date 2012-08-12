@@ -33,14 +33,13 @@ class InteractiveClient(Cmd):
 
         prompt_string = " {username}:{character}{zone} ({num_objs})> "
         self.prompt = prompt_string.format(username=username,
-                                           character=character,
+                                           character=(character or "No Character Selected"),
                                            zone=zone,
                                            num_objs=len(self.client.objects))
         return self.prompt
 
     def logged_in(self):
         if not self.client.last_character:
-            self.perror("You are not logged in. Use 'login' to authenticate.")
             return False
         else:
             return True
@@ -96,18 +95,21 @@ class InteractiveClient(Cmd):
             self.pfeedback("Authentication successful. You are now logged in as {0}."
                            .format(repr(username)))
 
+        character = None
         if args:
             character = self.client.characters[list(self.client.characters)[int(args)]].name
         else:
-            character = self.select(self.client.characters, 'Select a Character: ')
-        self.client.last_character = character
-        self.client.set_character_status(character)
+            if self.client.characters:
+                character = self.select(self.client.characters, 'Select a Character: ')
+        if character:
+            self.client.last_character = character
+            self.client.set_character_status(character)
 
-        self.client.get_objects()
+            self.client.get_objects()
 
         self.format_prompt()
 
-    def do_update(self, args):
+    def do_update(self, args=None):
         '''Update all the things that can be updated.
         This includes objects only at the moment.'''
         if not self.logged_in():
