@@ -16,6 +16,14 @@ class InteractiveClient(Cmd):
     debug = True
     prompt = " > "
 
+    def precmd(self, line):
+        self.do_update()
+        return line
+
+    def postcmd(self, stop, line):
+        self.do_update()
+        return stop
+
     def format_prompt(self, username='', character='', zone=''):
         if not username:
             username = self.client.last_user
@@ -116,15 +124,18 @@ class InteractiveClient(Cmd):
             return
 
         self.client.get_objects()
-        # TODO: Get messages too.
+        self.client.get_messages()
+
+        self.pfeedback(self.format_messages())
+
+    def format_messages(self):
+        return [("Message:", message) for msgid, message in self.client.messages.iteritems()]
 
     def do_map(self, args):
         '''Renders a map of the zone your character is currently in.
         By default this is ascii, but you can also ask it to render to an image.'''
         if not self.logged_in():
             return
-
-        self.update()
 
         # Get bounds (maxx, maxy, minx, miny) of all objects in the zone
         maxx = 0
