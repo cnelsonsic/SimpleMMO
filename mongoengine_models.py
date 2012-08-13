@@ -57,13 +57,13 @@ class Character(ScriptedObject):
 class Message(me.Document):
     '''A message said and displayed as if it were in world.
     Used only for zone-local messages.'''
-    sent = me.DateTimeField(default=datetime.datetime.now)
+    last_modified = me.DateTimeField(default=datetime.datetime.now)
     sender = me.StringField(default="")
     body = me.StringField(default="")
     loc = me.EmbeddedDocumentField(IntVector)
     player_generated = me.BooleanField(default=False)
 
-    meta = {'indexes': ['sent', 'loc'],
+    meta = {'indexes': ['last_modified', 'loc'],
             'allow_inheritance': True,
             }
 

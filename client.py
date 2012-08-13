@@ -89,6 +89,9 @@ class InteractiveClient(Cmd):
             username = opts.username
             password = opts.password
 
+        return self.login(username, password)
+
+    def login(self, username, password, charnum=None):
         # Sometimes the authserver may not be up.
         if not self.client.ping():
             self.perror("Error: Authentication server is not online.")
@@ -104,18 +107,42 @@ class InteractiveClient(Cmd):
                            .format(repr(username)))
 
         character = None
-        if args:
-            character = self.client.characters[list(self.client.characters)[int(args)]].name
+        if charnum:
+            character = self.client.characters[list(self.client.characters)[int(charnum-1)]].name
         else:
             if self.client.characters:
-                character = self.select(self.client.characters, 'Select a Character: ')
+                if len(self.client.characters) == 1:
+                    character = self.client.characters.keys()[0]
+                else:
+                    character = self.select(self.client.characters, 'Select a Character: ')
         if character:
             self.client.last_character = character
             self.client.set_character_status(character)
 
             self.client.get_objects()
+        else:
+            self.pfeedback("No characters found.")
+            character_name = raw_input("New character's name: ").strip()
+            self.do_create_character(character_name)
+            self.login(username, password, charnum)
 
         self.format_prompt()
+
+    @options([make_option('-n', '--name', type="string", default="Graxnor", help="The name of the character you want to create.."),
+             ])
+    def do_create_character(self, args, opts=None):
+        if not opts:
+            (name,) = args.split(' ')
+        else:
+            name = opts.name
+
+        try:
+            result = self.client.create_character(name)
+        except (clientlib.ClientError, clientlib.UnexpectedHTTPStatus) as exc:
+            self.perror("Error: Character creation failed: {0}".format(exc.message))
+            return
+
+        return result
 
     def do_update(self, args=None):
         '''Update all the things that can be updated.
@@ -126,10 +153,20 @@ class InteractiveClient(Cmd):
         self.client.get_objects()
         self.client.get_messages()
 
-        self.pfeedback(self.format_messages())
+        for msg in self.format_messages():
+            self.pfeedback(msg)
 
     def format_messages(self):
-        return [("Message:", message) for msgid, message in self.client.messages.iteritems()]
+        for msgid, message in self.client.messages.iteritems():
+            if not message.get('read'):
+                message['read'] = True
+                timestamp = datetime.fromtimestamp(message.get('last_modified', {}).get('$date', 0)/1000)
+                yield "[{timestamp:%X}] "\
+                    "<{sender}>: "\
+                    "{body}".format(sender=message.get('sender'),
+                                    body=message.get('body'),
+                                    timestamp=timestamp)
+
 
     def do_map(self, args):
         '''Renders a map of the zone your character is currently in.

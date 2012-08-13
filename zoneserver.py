@@ -288,7 +288,7 @@ class DateLimitedObjectHandler(BaseHandler):
         else:
             objects = self.target_object.objects
 
-        return objects
+        return objects.order_by('last_modified')
 
 
 class MessageHandler(DateLimitedObjectHandler):
