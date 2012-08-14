@@ -256,7 +256,7 @@ class TestDateLimitedObjectHandlerUnit(unittest.TestCase):
         expected = []
 
         MockObject = Mock()
-        MockObject.objects = expected
+        MockObject.objects.order_by = Mock(return_value=expected)
         with patch('zoneserver.DateLimitedObjectHandler.target_object', MockObject):
             result = self.objects_handler.get_objects()
 
@@ -266,9 +266,10 @@ class TestDateLimitedObjectHandlerUnit(unittest.TestCase):
         expected = []
 
         MockObject = Mock()
-        MockObject.objects = Mock(return_value=expected)
+        MockObject.objects().order_by = Mock(return_value=expected)
         with patch('zoneserver.DateLimitedObjectHandler.target_object', MockObject):
             result = self.objects_handler.get_objects(since=datetime.datetime.now())
+            print result
 
         self.assertEqual(expected, result)
 
