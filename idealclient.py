@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ##### BEGIN AGPL LICENSE BLOCK #####
 # This file is part of SimpleMMO.

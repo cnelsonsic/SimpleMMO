@@ -1,0 +1,5 @@
+FROM simplemmo-base:latest
+
+EXPOSE 1234
+
+CMD ["/usr/bin/python" "authserver.py"]

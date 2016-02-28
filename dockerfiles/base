@@ -1,0 +1,27 @@
+FROM ubuntu:precise
+
+RUN apt-get update && apt-get -q -y --no-install-recommends install \
+	git \
+	python-pip \
+	python-setuptools \
+	python-dev \
+	build-essential \
+	sqlite3 \
+	supervisor \
+	mongodb \
+	vim && \
+	apt-get -y autoremove && \
+	rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/cnelsonsic/SimpleMMO.git
+
+WORKDIR /SimpleMMO
+RUN pip install -r requirements.txt
+
+RUN sed -i '8inodaemon=true' supervisord.conf
+
+EXPOSE 1234 1235 1236 1237
+
+# This is actually not how we want to run this.
+# Each of these parts of supervisord should really be separate docker containers.
+CMD ["/usr/local/bin/supervisord"]
