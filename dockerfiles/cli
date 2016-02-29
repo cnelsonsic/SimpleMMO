@@ -1,0 +1,8 @@
+FROM simplemmo-base:latest
+
+RUN echo 'AUTHSERVER = _server_str % (PROTOCOL, "simplemmo-authserver", AUTHSERVERPORT)' >> settings.py
+RUN echo 'CHARSERVER = _server_str % (PROTOCOL, "simplemmo-charserver", CHARSERVERPORT)' >> settings.py
+RUN echo 'ZONESERVER = _server_str % (PROTOCOL, "simplemmo-masterzoneserver", MASTERZONESERVERPORT)' >> settings.py
+RUN echo 'METASERVER = _server_str % (PROTOCOL, "simplemmo-metaserver", METASERVERPORT)' >> settings.py
+
+CMD ["/usr/bin/python", "client.py"]

@@ -25,6 +25,7 @@ sphinxcontrib-httpdomain==1.1.7
 
 cmd2==0.6.4
 
+nose==1.3.7
 
 # Indirect Dependencies:
 
@@ -45,8 +46,7 @@ celery==3.1.20
 certifi==2015.11.20.1
 chardet==2.3.0
 cssutils==1.0.1
-## FIXME: could not find svn URL in dependency_links for this package:
-distribute==0.6.24dev-r0
+distribute==0.6.25
 django-celery==2.5.5
 django-indexer==0.3.0
 django-paging==0.2.5
@@ -57,7 +57,7 @@ gunicorn==0.13.4
 kombu==3.0.33
 logan==0.7.1
 medusa==0.5.4
-meld3==0.6.5
+meld3==0.6.7
 oauthlib==0.1.3
 pathtools==0.1.2
 pyasn1==0.1.9

@@ -1,0 +1,5 @@
+FROM simplemmo-base:latest
+
+EXPOSE 1300
+
+CMD ["/usr/bin/python", "zoneserver.py"]

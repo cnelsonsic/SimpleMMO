@@ -1,0 +1,12 @@
+FROM simplemmo-base:latest
+
+RUN curl -sSL -O https://get.docker.com/builds/Linux/x86_64/docker-1.10.2 && \
+    chmod +x docker-1.10.2 && \
+    mv docker-1.10.2 /usr/local/bin/docker
+
+# TODO: Add an NGINX to listen on 8236 to proxy to internal ports 1300-1555
+# example: simplemmo-masterzoneserver:8236/1300/foobar would proxy to the zoneserver container listening on 1300 and request "/foobar".
+
+EXPOSE 1236
+
+CMD ["/usr/bin/python", "masterzoneserver.py", "--dburi=sqlite:////database/simplemmo.sqlite"]

@@ -1,6 +1,7 @@
 FROM ubuntu:precise
 
 RUN apt-get update && apt-get -q -y --no-install-recommends install \
+	curl \
 	git \
 	python-pip \
 	python-setuptools \
@@ -19,6 +20,9 @@ WORKDIR /SimpleMMO
 RUN pip install -r requirements.txt
 
 RUN sed -i '8inodaemon=true' supervisord.conf
+
+RUN mkdir /database
+VOLUME ["/database"]
 
 EXPOSE 1234 1235 1236 1237
 

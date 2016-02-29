@@ -118,6 +118,12 @@ class ZoneHandler(BaseHandler):
                 s = start_scriptserver(zonename=name, instancetype=instance_type, owner=owner)
                 JOBS.extend([z, s])
 
+            elif START_ZONE_WITH == DOCKER:
+                logging.info("Starting process with docker.")
+                from start_zone_docker import start_zone, start_scriptserver
+                z, serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
+                s = start_scriptserver(zonename=name, instancetype=instance_type, owner=owner)
+
         # Wait for server to come up
         # Just query it on "/" every hundred ms or so.
         starttime = time.time()

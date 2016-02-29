@@ -220,7 +220,7 @@ class AuthHandler(BaseHandler):
 
     def set_current_user(self, user):
         if user:
-            self.set_secure_cookie("user", user)
+            self.set_secure_cookie("user", user, domain=None)
         else:
             self.clear_cookie("user")
 

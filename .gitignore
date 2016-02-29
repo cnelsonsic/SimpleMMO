@@ -8,3 +8,6 @@ coverage.xml
 coveragehtml
 mongodb*/*
 log/*.log
+*.swo
+*.swp
+.env

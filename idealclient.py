@@ -224,7 +224,7 @@ if __name__ == "__main__":
     retry(ping_authserver)
 
     # Since the server is up, authenticate.
-    if login(USERNAME, PASSWORD) is True:
+    if login(USERNAME, PASSWORD) and COOKIES:
         print "authenticated"
 
     chars = get_characters()
