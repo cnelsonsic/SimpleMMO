@@ -3,24 +3,31 @@ import unittest
 import sys
 sys.path.append(".")
 
-from elixir_models import User, Character
+from elixir_models import db, User, Character
+from elixir_models import setup as elixir_models_setup
+
+from playhouse.test_utils import test_database
+
+from playhouse.sqlite_ext import SqliteExtDatabase
+test_db = SqliteExtDatabase(':memory:')
 
 class TestUser(unittest.TestCase):
+
     def test_init(self):
         '''Initting a User should work.'''
-        characters = [Character()]
         tests = {'username': 'UserName',
                  'password':'Password',
-                 'email': 'asdf@zxcv.sdf',
-                 'characters': characters}
+                 'email': 'asdf@zxcv.sdf'}
 
-        result = User(username="UserName",
-                      password="Password",
-                      email="asdf@zxcv.sdf",
-                      characters=characters)
+        with test_database(test_db, (User, Character)):
+            result = User.create(username="UserName",
+                        password="Password",
+                        email="asdf@zxcv.sdf")
+            character = Character.create(name="Char", user=result)
 
-        for attr, value in tests.iteritems():
-            self.assertEqual(getattr(result, attr), value)
+            for attr, value in tests.iteritems():
+                self.assertEqual(getattr(result, attr), value)
+            self.assertEqual(result.characters[0], character)
 
     def test___repr__(self):
         user = User(username="Tim", characters=[Character(name="The Enchanter")])

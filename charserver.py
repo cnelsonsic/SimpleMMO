@@ -32,7 +32,7 @@ import tornado
 
 import json
 
-from elixir_models import User, Character, session
+from elixir_models import User, Character, db
 
 from settings import CHARSERVERPORT
 
@@ -78,7 +78,7 @@ class CharacterCreationHandler(BaseHandler):
             return False
 
         character = Character(user=user, name=character_name)
-        session.commit()
+        db.commit()
         logging.info("Created a character %s" % character)
         return character.name
 

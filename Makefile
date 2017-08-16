@@ -16,15 +16,18 @@ BUILDABLE_PACKAGES := base $(filter-out dockerfiles/base,  $(wildcard dockerfile
 all: clean build
 
 test:
-	nosetests --exe -v tests/
+	docker run --rm -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.pyc; mv __init__.py __init__.py.bak; nosetests -s --exe -v tests/; mv __init__.py.bak __init__.py'
+
+full-test: build
+	docker run --rm -it simplemmo-cli bash -c 'rm __init__.py*; nosetests --exe -v tests/'
 
 build: 
 	$(foreach PACKAGE_INFO,$(BUILDABLE_PACKAGES), \
-		docker build --pull=false -t $(NAME)-$(notdir $(PACKAGE_INFO)):latest --file dockerfiles/$(notdir $(PACKAGE_INFO)) dockerfiles/ ; \
+		docker build --pull=false -t $(NAME)-$(notdir $(PACKAGE_INFO)):latest --file dockerfiles/$(notdir $(PACKAGE_INFO)) . ; \
 		docker tag $(NAME)-$(notdir $(PACKAGE_INFO)) $(NAME)-$(notdir $(PACKAGE_INFO)):$(VERSION) ; \
 	)
 
-build-no-cache:
+build-no-cache: clean
 	$(foreach PACKAGE_INFO,$(BUILDABLE_PACKAGES), \
 		docker build --no-cache --pull=false -t $(NAME)-$(notdir $(PACKAGE_INFO)):latest --file dockerfiles/$(notdir $(PACKAGE_INFO)) dockerfiles/ ; \
 		docker tag $(NAME)-$(notdir $(PACKAGE_INFO)) $(NAME)-$(notdir $(PACKAGE_INFO)):$(VERSION) ; \

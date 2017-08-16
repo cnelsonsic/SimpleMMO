@@ -29,18 +29,16 @@ from mock import Mock
 import sys
 sys.path.append(".")
 
-from elixir_models import metadata, setup_all, create_all
+from elixir_models import setup as elixir_setup, User, Character
+
+from playhouse.sqlite_ext import SqliteExtDatabase
+from playhouse.test_utils import test_database
 
 import settings
 from charserver import CharacterZoneHandler
 
-def set_up_db():
-    '''Connects to an in-memory SQLite database,
-    with the purpose of emptying it and recreating it.'''
-    metadata.bind = "sqlite:///:memory:"
-#     metadata.bind.echo = True
-    setup_all()
-    create_all()
+test_db = SqliteExtDatabase(':memory:', fields={'json':'json'})
+
 
 class TestCharacterZoneHandler(AsyncHTTPTestCase):
     def get_app(self):
@@ -48,23 +46,24 @@ class TestCharacterZoneHandler(AsyncHTTPTestCase):
 
     def setUp(self):
         super(TestCharacterZoneHandler, self).setUp()
-        set_up_db()
         app = Application([('/(.*)/zone', CharacterZoneHandler)], cookie_secret=settings.COOKIE_SECRET)
         req = Mock()
         req.cookies = {}
         self.character_zone_handler = CharacterZoneHandler(app, req)
 
     def test_get(self):
-        charname = "testcharname"
-        result = json.loads(self.fetch('/%s/zone' % charname).body)
-        expected = {'zone': 'playerinstance-GhibliHills-%s' % charname}
-        self.assertEqual(result, expected)
+        with test_database(test_db, (User, Character)):
+            charname = "testcharname"
+            result = json.loads(self.fetch('/%s/zone' % charname).body)
+            expected = {'zone': 'playerinstance-GhibliHills-%s' % charname}
+            self.assertEqual(result, expected)
 
     def test_get_zone(self):
-        character = "testcharname"
-        result = self.character_zone_handler.get_zone(character)
-        expected = {'zone': 'playerinstance-GhibliHills-%s' % character}
-        self.assertEqual(result, expected)
+        with test_database(test_db, (User, Character)):
+            character = "testcharname"
+            result = self.character_zone_handler.get_zone(character)
+            expected = {'zone': 'playerinstance-GhibliHills-%s' % character}
+            self.assertEqual(result, expected)
 
 if __name__ == '__main__':
     unittest.main()

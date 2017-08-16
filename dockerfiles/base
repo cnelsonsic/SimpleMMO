@@ -14,15 +14,18 @@ RUN apt-get update && apt-get -q -y --no-install-recommends install \
 	apt-get -y autoremove && \
 	rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/cnelsonsic/SimpleMMO.git
-
-WORKDIR /SimpleMMO
-RUN pip install -r requirements.txt
-
-RUN sed -i '8inodaemon=true' supervisord.conf
-
 RUN mkdir /database
 VOLUME ["/database"]
+
+#RUN git clone https://github.com/cnelsonsic/SimpleMMO.git
+
+WORKDIR /SimpleMMO
+ADD requirements.txt .
+RUN pip install -r requirements.txt
+
+ADD . /SimpleMMO
+
+RUN sed -i '8inodaemon=true' supervisord.conf
 
 EXPOSE 1234 1235 1236 1237
 

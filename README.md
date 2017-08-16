@@ -95,27 +95,13 @@ This is generally just for 'settling' and preventing intersection of physical
 objects.
 Again, this is optional and probably completely vestigial.
 
-Databases
+Database
 ---------
-SimpleMMO uses a combination of databases to do its job most effectively.
 
 ### SQL
 The bulk of database work is done in an SQL database, you can use MySQL, Postgres,
 or even SQLite.
-Basically anything that Elixir (and by extension, SQLAlchemy) supports.
-
-### MongoDB
-Zones are a little different.
-They use MongoDB for their data storage needs.
-It's fast, but less fault tolerant than the SQL databases.
-Keep in mind that when starting for the first time, it may generate a "prealloc"
-file that is quite large, on the order of a few gigabytes.
-For most people, this will not be a problem.
-However on storage-limited systems, this may prove frustrating.
-
-The real problem here is that there is a flag for mongod, --noprealloc, which
-should work for its journal files as well, but does not.
-See the bug at: https://jira.mongodb.org/browse/SERVER-2733 for more information.
+Basically anything that Peewee (and by extension, SQLAlchemy) supports.
 
 API Documentation
 -----------------

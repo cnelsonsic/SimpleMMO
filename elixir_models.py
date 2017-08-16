@@ -18,28 +18,27 @@
 #
 # ##### END AGPL LICENSE BLOCK #####
 
-'''This module contains all the models for the SQL Elixir tables.'''
+'''This module contains all the models for the SQL ~~Elixir~~ Peewee tables.'''
 
-from elixir import Entity, Field
-from elixir import OneToMany, ManyToOne
-from elixir import UnicodeText, Integer, DateTime
-from elixir import using_options
-from elixir import metadata, setup_all, create_all
-from elixir import session
+from peewee import *
+from playhouse.sqlite_ext import SqliteExtDatabase
 
 import datetime
 
+db = SqliteExtDatabase('sqlite:///simplemmo.db', fields={'json':'json'})
 
-class User(Entity):
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+class User(BaseModel):
     '''User contains details useful for authenticating a user for when they
     initially log in.'''
 
-    using_options(tablename="user")
-
-    username = Field(UnicodeText, unique=True, required=True)
-    password = Field(UnicodeText, required=True)
-    email = Field(UnicodeText)
-    characters = OneToMany('Character') # A User has Many Characters
+    username = CharField(unique=True)
+    password = CharField()
+    email = CharField(null=True)
+    # Also has 'characters'
 
     def __repr__(self):
         uname = self.username
@@ -47,51 +46,53 @@ class User(Entity):
         chars = ', '.join([c.name for c in self.characters])
         return '<User "%s" owning character%s: %s.>' % (uname, s, chars)
 
-class Character(Entity):
+class Character(BaseModel):
     '''Character contains the details for characters that users may control.'''
 
-    using_options(tablename="character")
+    name = CharField(unique=True)
 
-    name = Field(UnicodeText, unique=True, required=True)
-    user = ManyToOne('User', required=True)
-    zones = OneToMany('Zone')
+    user = ForeignKeyField(User, related_name='characters')
+    # Also has 'zones'
+
 
     def __repr__(self):
         return '<Character "%s" owned by "%s">' % (self.name, self.user.username)
 
-class Zone(Entity):
+class Zone(BaseModel):
     '''Zone stores connection information about the zoneservers.'''
-    using_options(tablename="zone")
 
-    zoneid = Field(UnicodeText, unique=True, primary_key=True)
-    port = Field(Integer, unique=True)
-    url = Field(UnicodeText)
-    character = ManyToOne('Character')
+    zoneid = CharField(unique=True)
+    port = IntegerField(unique=True)
+    url = CharField(unique=True, null=True)
 
-class Message(Entity):
+    character = ForeignKeyField(Character, related_name='zones')
+
+class Message(BaseModel):
     '''A text message from a player, for cross-zone messaging.'''
-    using_options(tablename="message")
 
-    date_sent = Field(DateTime, default=datetime.datetime.now)
-    sender = Field(UnicodeText, required=True)
-    recipient = Field(UnicodeText)
-    channel = Field(Integer, unique=True)
-    body = Field(UnicodeText, default=u'')
+    date_sent = DateTimeField(default=datetime.datetime.now)
+    sender = CharField()
+    recipient = CharField(null=True, default=u'')
+    channel = IntegerField(null=True, default=0)
+    body = CharField(null=True, default=u'')
 
 def setup(db_uri='sqlite:///simplemmo.sqlite', echo=False):
-    metadata.bind = db_uri
-    metadata.bind.echo = echo
-    setup_all()
-    create_all()
+    print "dburi:", db_uri
+    global db
+    db = SqliteExtDatabase(db_uri, fields={'json':'json'})
+    db.connect()
+    db.create_tables([User, Character, Zone, Message], True)
 
 
 if __name__ == "__main__":
-    u = User(username="user", password="pass")
-    Character(name="Groxnor", user=u)
-    Character(name="Bleeblebox", user=u)
-    session.commit()
+    setup(db_uri=":memory:")
 
-    print User.query.all()
-    print Character.query.all()
+    u, _ = User.get_or_create(username="user", password="pass")
+    Character.get_or_create(name="Groxnor")
+    Character.get_or_create(name="Bleeblebox")
 
-    print "Characters for 'user':", Character.get_by(user=u)
+    print [_ for _ in User.select()]
+    print [_ for _ in Character.select()]
+
+    print u
+    print "Characters for 'user':", [_ for _ in u.characters]

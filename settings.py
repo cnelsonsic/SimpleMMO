@@ -64,7 +64,7 @@ DEFAULT_CHARACTER_ZONE = 'defaultzone'
 SUPERVISORD = 'supervisord' # Constant
 SUBPROCESS = 'subprocess' # Constant
 DOCKER = 'docker' # Constant
-START_ZONE_WITH = DOCKER
+START_ZONE_WITH = SUBPROCESS
 
 # ScriptServer Settings
 MAX_ZONE_OBJECT_MESSAGE_COUNT = 1000

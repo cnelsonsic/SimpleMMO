@@ -11,3 +11,4 @@ log/*.log
 *.swo
 *.swp
 .env
+*.db

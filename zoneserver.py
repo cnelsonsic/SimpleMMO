@@ -45,11 +45,41 @@ define("zonename", default='defaultzone', help="Specify what zone to load from d
 define("instancetype", default='playerinstance', help="Specify what type of zone this is.", type=str)
 define("owner", default='None', help="Specify who owns this zone.", type=str)
 
-from pymongo import json_util
+from peewee import *
+from playhouse.sqlite_ext import SqliteExtDatabase
+import datetime
 
-import mongoengine as me
+db = SqliteExtDatabase('zone.db', fields={'json':'json'})
 
-from mongoengine_models import Character, Object, IntVector, ScriptedObject, Message
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+class JSONField(Field):
+    db_field = 'json'
+
+    def db_value(self, value):
+        return json.dumps(value)
+
+    def python_value(self, value):
+        return json.loads(value)
+
+class Character(BaseModel):
+    name = CharField(unique=True)
+    owner = CharField()
+    speed = IntegerField(default=5)
+    states = JSONField(default=[])
+
+class Object(BaseModel):
+    loc = JSONField(default=[0,0,0])
+    last_modified = DateTimeField(default=datetime.datetime.now)
+
+class Message(BaseModel):
+    message = CharField()
+
+class ScriptedObject(Object):
+    pass
+
 from games.objects.basescript import Script
 
 
@@ -63,9 +93,15 @@ class CharacterController(object):
         Returns the Character object, or False if it isn't a
         well-formed character object.'''
         try:
-            charobj = Character.objects(name=character).first()
-            return charobj if charobj.states else False
-        except(IndexError, AttributeError):
+            charobj = Character.find_one(name=character)
+            if charobj:
+                states = charobj.get('states', [])
+                charobj['states'] = json.loads(states) if isinstance(states, basestring) else states
+                return charobj
+            else:
+                return False
+        except(IndexError, TypeError, KeyError, ValueError), e:
+            print e
             return False
 
     def create_character(self, name, owner=""):
@@ -76,10 +112,11 @@ class CharacterController(object):
         if not charobj:
             # No character in the db named that,
             # So create an object for the player and save it.
-            charobj = Character()
-            charobj.name = name
-            charobj.owner = owner
-            charobj.states.append('player')
+            charobj = dict()
+            charobj['name'] = name
+            charobj['owner'] = owner
+            charobj['speed'] = 5
+            charobj['states'] = ['player']
         return charobj
 
     def set_char_status(self, character, status, user=None):
@@ -87,30 +124,31 @@ class CharacterController(object):
 
         # Get or Create this character.
         charobj = self.create_character(character, owner=user)
+        charobj['states'] = json.loads(charobj['states'])
 
         # does the character already have this status?
-        if status not in charobj.states:
+        if status not in charobj['states']:
             # If not, we need to append it.
-            charobj.states.append(status)
+            charobj['states'].append(status)
 
         # Remove any mutually exclusive character states except what was passed.
         for s in ('online', 'offline'):
             # If the status we're trying to set is not the one we're currently on
             # and the status we're iterating on is in the character states already.
-            if status != s and s in charobj.states:
-                charobj.states.remove(s)
+            if status != s and s in charobj['states']:
+                charobj['states'].remove(s)
 
         # Remove any duplicate states
-        charobj.states = list(set(charobj.states))
+        charobj['states'] = json.dumps(list(set(charobj['states'])))
 
-        charobj.save()
+        Character.insert(charobj)
 
         return charobj
 
     def is_owner(self, username, character):
-        charobj = Character.objects(name=character).first()
+        charobj = self.get_character(character)
         if charobj:
-            return charobj.owner == username
+            return charobj['owner'] == username
         else:
             return None
 
@@ -126,30 +164,36 @@ class CharacterController(object):
 #             return
 
         # Set the character's new position based on the x, y and z modifiers.
-        if hasattr(charobj, 'loc') and charobj.loc is not None:
-            charobj.loc['x'] += xmod*charobj.speed
-            charobj.loc['y'] += ymod*charobj.speed
-            charobj.loc['z'] += zmod*charobj.speed
-            charobj.last_modified = datetime.datetime.now()
+        if charobj.get('loc'):
+            charobj['loc'] = json.loads(charobj['loc'])
+            charobj['loc']['x'] += xmod * charobj['speed']
+            charobj['loc']['y'] += ymod * charobj['speed']
+            charobj['loc']['z'] += zmod * charobj['speed']
+            charobj['last_modified'] = datetime.datetime.now()
         else:
-            charobj.loc = IntVector(x=0, y=0, z=0)
+            charobj['loc'] = dict(x=0, y=0, z=0)
 
         # Do simple physics here.
         # TODO: Split this into its own method.
         def manhattan(x1, y1, x2, y2):
             return abs(x1-x2) + abs(y1-y2)
 
-        charx, chary = charobj.loc['x'], charobj.loc['y']
-        for o in Object.objects(physical=True):
+        charx, chary = charobj['loc']['x'], charobj['loc']['y']
+        for o in Object.find(physical=True):
             # Is the distance between that object and the character less than 3?
-            if o.loc and manhattan(o.loc['x'], o.loc['y'], charx, chary) < 3:
-                # We collided against something, so return now and don't
-                # save the location changes into the database.
-                return False
+            if o['loc']:
+                o['loc'] = json.loads(o['loc'])
+                print manhattan(o['loc']['x'], o['loc']['y'], charx, chary)
+                if manhattan(o['loc']['x'], o['loc']['y'], charx, chary) < 3:
+                    # We collided against something, so return now and don't
+                    # save the location changes into the database.
+                    return False
 
         # We didn't collide, hooray!
         # So we'll save to the database and return it.
-        charobj.save()
+        charobj['loc'] = json.dumps(charobj['loc'])
+        Character.insert(charobj)
+        charobj['loc'] = json.loads(charobj['loc'])
         return charobj
 
 
@@ -203,7 +247,7 @@ class MovementHandler(BaseHandler):
         if hasattr(result, 'to_mongo'):
             result = result.to_mongo()
 
-        retval = json.dumps(result, default=json_util.default)
+        retval = json.dumps(result)
 
         self.content_type = 'application/json'
         self.write(retval)
@@ -258,7 +302,7 @@ class DateLimitedObjectHandler(BaseHandler):
     target_object = None
 
     def head(self):
-        lastdate = self.target_object.objects.order_by('-last_modified').first().last_modified
+        lastdate = self.target_object.find_one(order_by="-last_modified")['last_modified']
         cache_time = 10*365*24*60*60 # 10 Years.
         self.set_header('Last-Modified', lastdate)
         self.set_header('Expires', lastdate + datetime.timedelta(seconds=cache_time))
@@ -267,13 +311,12 @@ class DateLimitedObjectHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         if not self.target_object:
-            raise NotImplementedError("target_object must be set to a MongoEngine model class.")
+            raise NotImplementedError("target_object must be a table.")
 
         since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
         if since.year == 2010:
             since = None
-        objs = [m.to_mongo() for m in self.get_objects(since)]
-        retval = json.dumps(objs, default=json_util.default)
+        retval = json.dumps(self.get_objects(since))
         self.content_type = 'application/json'
         self.write(retval)
 
@@ -284,11 +327,11 @@ class DateLimitedObjectHandler(BaseHandler):
 
         # Query the mongo messages database
         if since is not None:
-            objects = self.target_object.objects(last_modified__gte=since)
+            objects = self.target_object.query('SELECT * from :table WHERE last_modified >= :since ORDER BY last_modified', table=self.target_object.table.name, since=since)
         else:
-            objects = self.target_object.objects
+            objects = self.target_object.order_by('-last_modified')
 
-        return objects.order_by('last_modified')
+        return objects
 
 
 class MessageHandler(DateLimitedObjectHandler):
@@ -353,16 +396,6 @@ def main():
 
     zoneid = '-'.join((instancetype, zonename, owner))
     print "ZoneID: %s" % zoneid
-
-    # Make sure mongodb is up
-    while True:
-        try:
-            me.connect(zoneid)
-            break
-        except(me.connection.ConnectionError):
-            # Mongo's not up yet. Give it time.
-            time.sleep(.1)
-            print "sleeping"
 
     print "Loading %s's data." % zonename
     from importlib import import_module

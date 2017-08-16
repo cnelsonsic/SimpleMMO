@@ -126,7 +126,7 @@ class ZoneScriptRunner(BaseTickServer):
         for scriptname, scripts in self.scripts.items():
             for script in scripts:
                 logger.debug("Ticking {0}".format(script))
-                # TODO: Pass some locals or somesuch so that they can query the db
+                # TODO: Pass some locals or somesuch so that they can query the db (Actually: self.me_obj is the MongoEngine object.)
                 script.tick()
 
         # Clean up mongodb's messages by deleting all but the most recent 100 non-player messages

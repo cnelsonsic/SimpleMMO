@@ -2,4 +2,6 @@ FROM simplemmo-base:latest
 
 EXPOSE 1300
 
-CMD ["/usr/bin/python", "zoneserver.py"]
+ADD supervisord-zone.conf supervisord.conf
+
+CMD ["/usr/local/bin/supervisord"]

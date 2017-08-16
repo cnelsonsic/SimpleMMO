@@ -30,7 +30,7 @@ import tornado
 import requests
 
 from settings import MASTERZONESERVERPORT, PROTOCOL, HOSTNAME, ZONESTARTUPTIME,\
-                     START_ZONE_WITH, SUPERVISORD, SUBPROCESS
+                     START_ZONE_WITH, SUPERVISORD, SUBPROCESS, DOCKER
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 

@@ -40,7 +40,7 @@ import settings
 
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
-from elixir_models import session, Character, User
+from elixir_models import Character, User, db
 
 # TODO: Make an SQLCharacterController
 
@@ -150,10 +150,10 @@ class RegistrationHandler(BaseHandler):
                     password=UserController.hash_password(password),
                     email=email)
         try:
-            session.commit()
+            db.commit()
         except IntegrityError:
             # User already exists.
-            session.rollback()
+            db.rollback()
             user = False
         return user
 
@@ -294,7 +294,7 @@ if __name__ == "__main__":
     if not user:
         password = UserController.hash_password(settings.DEFAULT_PASSWORD)
         User(username=settings.DEFAULT_USERNAME, password=password)
-        session.commit()
+        db.commit()
 
     print "Starting up Authserver..."
     server.start()
