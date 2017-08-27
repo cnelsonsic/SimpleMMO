@@ -51,11 +51,12 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
     s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return s, url
 
-def start_scriptserver(zonename="defaultzone", instancetype="playerinstance", owner="Groxnor"):
+def start_scriptserver(zonename="defaultzone", instancetype="playerinstance", owner="Groxnor", dburi='testing.sqlite'):
 
-    args = ['scriptserver.py', '%s-%s-%s' % (instancetype, zonename, owner)]
+    args = ['scriptserver.py', '--zoneid=%s-%s-%s' % (instancetype, zonename, owner), '--dburi=%s' % dburi]
     cmd = [sys.executable]+args
     logging.info("Starting %s" % ' '.join(args))
+    logging.info(cmd)
     s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return s
 

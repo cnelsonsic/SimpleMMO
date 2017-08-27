@@ -32,7 +32,7 @@ import tornado
 
 import json
 
-from elixir_models import User, Character, db
+from elixir_models import User, Character
 
 from settings import CHARSERVERPORT
 
@@ -70,15 +70,15 @@ class CharacterCreationHandler(BaseHandler):
 
     def create(self, character_name):
         logging.info("Creating a character named %s" % character_name)
-        user = User.query.filter_by(username=self.get_current_user()).first()
+        user = User.get(username=self.get_current_user())
         if not user:
             return
 
-        if Character.query.filter_by(name=character_name).first():
+        if Character.select().where(Character.name==character_name).exists():
             return False
 
         character = Character(user=user, name=character_name)
-        db.commit()
+        character.save()
         logging.info("Created a character %s" % character)
         return character.name
 

@@ -220,6 +220,8 @@ class Client(object):
         elif r.status_code == 401:
             self.cookies = {}
             return False
+        else:
+            print r
 
     def create_character(self, character_name):
         '''Create a character. Think of this as making a "new file".
@@ -231,10 +233,9 @@ class Client(object):
         if r.status_code == 400 or not r.content:
             raise ClientError("Creating character %s failed: %s" % (character_name, r.content))
         elif r.status_code != 200:
-            print r.status_code, r.content
             raise UnexpectedHTTPStatus("CharServer", r.status_code, r.content)
 
-        self.info("Creating a character named %s" % character_name)
+        self.info("Creating a character named %s" % r.content)
         self._populate_characters()
         return r.content
 
@@ -318,9 +319,9 @@ class Client(object):
 
         if r.status_code == 200:
             objects = json.loads(r.content)
+            self.info("Got %d objects."%len(objects))
             for obj in objects:
-                objid = obj.get('_id', {}).get('$oid')
-                self.objects[objid] = obj
+                self.objects[obj['id']] = obj
         else:
             raise UnexpectedHTTPStatus("ZoneServer %s" % zone, r.status_code, r.content)
 

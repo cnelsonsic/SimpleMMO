@@ -8,6 +8,8 @@ logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.W
 import sys
 sys.path.append(".")
 
+import time
+
 import settings
 
 import clientlib
@@ -21,8 +23,6 @@ from playhouse.test_utils import test_database
 
 import unittest
 
-raise unittest.SkipTest("Integration Tests are non-functional until move to docker is more complete.")
-
 class TestClient(IntegrationBase):
 
     @classmethod
@@ -34,9 +34,6 @@ class TestClient(IntegrationBase):
         c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
         cls.character = c.create_character("Graxnor")
 
-    def setUp(self):
-        super(TestClient, self).setUp()
-
     @contextmanager
     def fresh_servers(self):
         '''Kills all the servers and restarts them.'''
@@ -45,16 +42,6 @@ class TestClient(IntegrationBase):
         yield # Let the code do its thing
         self.tearDownClass() # Kill off the existing servers
         self.setUpClass() # Fire up new servers for the next test
-
-    @staticmethod
-    def clean_up_db():
-        metadata.bind = 'sqlite:///simplemmo.sqlite'
-        setup_all()
-        create_all()
-        for u in User.query.all():
-            print "Deleting %r" % u
-            u.delete()
-        session.commit()
 
     def test___init__(self):
         '''Init the Client with no args.'''
@@ -204,31 +191,39 @@ class TestClient(IntegrationBase):
 
     def test_get_objects(self):
         '''Client can get the objects in our character's zone.'''
-        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        c.get_objects()
+        with self.fresh_servers():
+            c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+            print c.get_objects()
         self.assertTrue(c.objects)
+        print c.objects
 
     def test_get_objects_verbose(self):
         '''Client can get the objects in our character's zone, when we give it.'''
-        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        zoneid = c.get_zone(self.character)
-        zoneurl = c.get_zone_url(zoneid)
-        c.get_objects(zoneurl)
+        with self.fresh_servers():
+            c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+            zoneid = c.get_zone(self.character)
+            zoneurl = c.get_zone_url(zoneid)
+            c.get_objects(zoneurl)
         self.assertTrue(c.objects)
 
     def test_get_objects_update(self):
         '''Client can update its objects.'''
-        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        c.get_objects()
-        result = c.get_objects()
-        self.assertTrue(c.objects)
+        with self.fresh_servers():
+            c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+            self.assertEqual(len(c.objects), 0) 
+            orig_objs = c.get_objects()
+            self.assertEqual(len(c.objects), 11) 
+            result = c.get_objects()
+
+        self.assertEqual(len(c.objects), 11) 
         self.assertEqual(result, [], 'When updating that quickly, there should be no updated objects.')
 
     def test_set_character_status(self):
         '''Client can update its objects.'''
-        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        c.get_objects()
-        result = c.set_character_status(self.character, 'online')
+        with self.fresh_servers():
+            c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+            c.get_objects()
+            result = c.set_character_status(self.character, 'online')
         self.assertTrue(result)
         self.assertTrue(c.characters[self.character].online)
 
@@ -258,10 +253,8 @@ class TestClient(IntegrationBase):
         for obj_id, obj in objects.iteritems():
             if obj.get('name') == 'Linnea':
                 linnea = obj
-                linnea_id = obj.get('_id', {}).get('$oid')
                 break
 
-        linnea['id'] = linnea_id
         return linnea
 
 
@@ -284,44 +277,48 @@ class TestClient(IntegrationBase):
 
     def test_scriptserver(self):
         '''Client can see the ScriptServer updating objects.'''
-        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        character = self.character
-        # Override the character's zone:
-        zone = 'playerinstance-AdventureDungeon-%s' % character
-        c.characters[character].zone = zone
-        c.set_online(character)
+        with self.fresh_servers():
+            c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+            character = self.character
+            # Override the character's zone:
+            zone = 'playerinstance-AdventureDungeon-%s' % character
+            c.characters[character].zone = zone
+            c.set_online(character)
 
-        c.get_objects()
+            print c.get_objects()
 
-        linnea = self.get_linnea(c.objects)
+            linnea = self.get_linnea(c.objects)
 
-        # Wait a bit for Linnea to wander about.
-        import time
-        time.sleep(0.1)
+            # Wait a bit for Linnea to wander about.
+            time.sleep(0.1)
 
-        c.get_objects()
-        updated_linnea = self.get_linnea(c.objects)
+            c.get_objects()
+            updated_linnea = self.get_linnea(c.objects)
+
         self.assertTrue(updated_linnea)
-        self.assertNotEqual(linnea['loc'], updated_linnea['loc'])
+        self.assertNotEqual(linnea, updated_linnea)
+        self.assertNotEqual(linnea['last_modified'], updated_linnea['last_modified'])
 
         # Any of the three x, y and z values should not match.
-        matches = any([linnea['loc'][attr] != updated_linnea['loc'][attr] for attr in ('x', 'y', 'z')])
+        matches = any([linnea['loc_%s'%attr] != updated_linnea['loc_%s'%attr] for attr in ('x', 'y', 'z')])
         self.assertTrue(matches)
 
     def test_get_messages(self):
-        c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
-        character = self.character
-        # Override the character's zone:
-        zone = 'playerinstance-AdventureDungeon-%s' % character
-        c.characters[character].zone = zone
-        c.set_online(character)
-        c.get_objects()
+        with self.fresh_servers():
+            c = clientlib.Client(username=settings.DEFAULT_USERNAME, password=settings.DEFAULT_PASSWORD)
+            character = self.character
+            # Override the character's zone:
+            zone = 'playerinstance-AdventureDungeon-%s' % character
+            c.characters[character].zone = zone
+            c.set_online(character)
+            c.get_objects()
 
-        # Poke Linnea to make her talk
-        linnea = self.get_linnea(c.objects)
-        c.activate(linnea['id'])
+            # Poke Linnea to make her talk
+            linnea = self.get_linnea(c.objects)
+            c.activate(linnea['id'])
 
-        c.get_messages()
+            c.get_messages()
+
         self.assertTrue(c.messages)
 
 

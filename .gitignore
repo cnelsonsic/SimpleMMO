@@ -1,9 +1,10 @@
 *.pyc
 *.pyo
-*.sqlite
+*.sqlite*
 .coverage
 coverage.xml
 .pythoscope
+.noseids
 *,cover
 coveragehtml
 mongodb*/*

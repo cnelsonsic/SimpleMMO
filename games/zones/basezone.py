@@ -1,8 +1,7 @@
 
 from random import randint, uniform
 
-from mongoengine_models import Object
-from mongoengine_models import IntVector
+from elixir_models import Object
 
 # Some helpers for random.
 def randloc():
@@ -14,8 +13,9 @@ def randrot():
 def randscale():
     return uniform(.75, 1.25)
 
+
 class BaseZone(object):
-    def __init__(self):
+    def __init__(self, logger=None):
         '''Initialize the zone.
         Insert whatever objects into the database programmatically.
         This includes loading things from a disk file if you so choose.
@@ -26,13 +26,27 @@ class BaseZone(object):
         that zone and recreate it when the zone is started up again.
         '''
 
+        self.setup_logging(logger=logger)
+        self.load()
+
+    def setup_logging(self, logger=None):
+        if logger:
+            self.logger = logger
+        else:
+            import logging
+            self.logger = logging.getLogger('zoneserver.'+__file__)
+
+    def load(self):
         if not self.is_loaded():
             self.insert_objects()
             # Loading complete.
             self.set_loaded()
 
     def is_loaded(self):
-        return True if Object.objects(name="Loading Complete.") else False
+        if Object.get_objects(name='Loading Complete.'):
+            return True
+        else:
+            return False
 
     def set_loaded(self):
         from sys import maxint
@@ -40,7 +54,7 @@ class BaseZone(object):
         obj = Object()
         obj.name = "Loading Complete."
         far = maxint*-1
-        obj.loc = IntVector(x=far, y=far, z=far)
+        obj.loc_x, obj.loc_y, obj.loc_z = far, far, far
         obj.states.extend(['hidden'])
         obj.save()
         print obj.name

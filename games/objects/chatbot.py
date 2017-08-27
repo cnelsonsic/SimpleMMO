@@ -1,7 +1,5 @@
 
-from mongoengine_models import ScriptedObject
-from mongoengine_models import IntVector, FloatVector
-
+from elixir_models import Object
 from games.objects.basescript import Script
 
 class ChatBot(Script):
@@ -10,13 +8,13 @@ class ChatBot(Script):
 
     @classmethod
     def create(cls):
-        obj = ScriptedObject()
+        obj = Object()
         obj.name = "Linnea"
         obj.resource = 'girl'
-        obj.loc = IntVector(x=0, y=0, z=0)
-        obj.rot = FloatVector(x=0, y=0, z=0)
-        obj.scale = FloatVector(x=1, y=1, z=1)
-        obj.vel = FloatVector(x=0, y=0, z=0)
+        obj.loc_x, obj.loc_y, obj.loc_z = 0, 0, 0
+        obj.rot_x, obj.rot_y, obj.rot_z = 0, 0, 0
+        obj.scale_x, obj.scale_y, obj.scale_z = 0, 0, 0
+        obj.vel_x, obj.vel_y, obj.vel_z = 0, 0, 0
         obj.states.extend(['alive', 'whole', 'clickable'])
         obj.scripts = ['games.objects.chatbot']
         obj.save()

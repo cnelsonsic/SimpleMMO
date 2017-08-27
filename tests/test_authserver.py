@@ -42,14 +42,12 @@ class TestAuthHandler(unittest.TestCase):
         # Mock out the User object
         MockUser = Mock()
         first = Mock(return_value=None)
-        MockUser.query.filter_by().first = first
+        MockUser.get = first
 
         # Test
         with patch.object(authserver, 'User', MockUser):
             result = self.auth_handler.authenticate(username, password)
 
-        MockUser.query.filter_by.assert_called_with(username=username)
-        first.assert_called_once_with()
         self.assertFalse(result)
 
     def test_set_admin(self):
@@ -120,6 +118,8 @@ class TestRegistrationHandler(unittest.TestCase):
             p.stop()
 
     def test_register_user(self):
+        self.MockUser.select().where().exists = Mock(return_value=False)
+
         # Test
         result = self.auth_handler.register_user("username", "password", "email")
 

@@ -33,6 +33,8 @@ from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 from settings import DATETIME_FORMAT
 
+from playhouse.shortcuts import model_to_dict
+
 from tornado.options import define, options
 try:
     from tornado.websocket import WebSocketHandler
@@ -46,39 +48,10 @@ define("instancetype", default='playerinstance', help="Specify what type of zone
 define("owner", default='None', help="Specify who owns this zone.", type=str)
 
 from peewee import *
-from playhouse.sqlite_ext import SqliteExtDatabase
+
 import datetime
 
-db = SqliteExtDatabase('zone.db', fields={'json':'json'})
-
-class BaseModel(Model):
-    class Meta:
-        database = db
-
-class JSONField(Field):
-    db_field = 'json'
-
-    def db_value(self, value):
-        return json.dumps(value)
-
-    def python_value(self, value):
-        return json.loads(value)
-
-class Character(BaseModel):
-    name = CharField(unique=True)
-    owner = CharField()
-    speed = IntegerField(default=5)
-    states = JSONField(default=[])
-
-class Object(BaseModel):
-    loc = JSONField(default=[0,0,0])
-    last_modified = DateTimeField(default=datetime.datetime.now)
-
-class Message(BaseModel):
-    message = CharField()
-
-class ScriptedObject(Object):
-    pass
+from elixir_models import Character, Message, Object, ComplexEncoder, ScriptedObject
 
 from games.objects.basescript import Script
 
@@ -93,30 +66,21 @@ class CharacterController(object):
         Returns the Character object, or False if it isn't a
         well-formed character object.'''
         try:
-            charobj = Character.find_one(name=character)
-            if charobj:
-                states = charobj.get('states', [])
-                charobj['states'] = json.loads(states) if isinstance(states, basestring) else states
-                return charobj
-            else:
-                return False
-        except(IndexError, TypeError, KeyError, ValueError), e:
-            print e
-            return False
+            charobj = Object.get_objects(limit=1, player=character)
+        except Object.DoesNotExist:
+            charobj = False
+        return charobj
+
 
     def create_character(self, name, owner=""):
         '''Create an in-world character if one does not already exist.
         If one exists, return it.'''
-        # TODO: This is pretty dumb and needs reorganized.
         charobj = self.get_character(name)
         if not charobj:
             # No character in the db named that,
             # So create an object for the player and save it.
-            charobj = dict()
-            charobj['name'] = name
-            charobj['owner'] = owner
-            charobj['speed'] = 5
-            charobj['states'] = ['player']
+            charobj = Object(name=name, owner=owner, states=['player'])
+            charobj.save()
         return charobj
 
     def set_char_status(self, character, status, user=None):
@@ -124,31 +88,30 @@ class CharacterController(object):
 
         # Get or Create this character.
         charobj = self.create_character(character, owner=user)
-        charobj['states'] = json.loads(charobj['states'])
 
         # does the character already have this status?
-        if status not in charobj['states']:
+        if status not in charobj.states:
             # If not, we need to append it.
-            charobj['states'].append(status)
+            charobj.states.append(status)
 
         # Remove any mutually exclusive character states except what was passed.
         for s in ('online', 'offline'):
             # If the status we're trying to set is not the one we're currently on
             # and the status we're iterating on is in the character states already.
-            if status != s and s in charobj['states']:
-                charobj['states'].remove(s)
+            if status != s and s in charobj.states:
+                charobj.states.remove(s)
 
         # Remove any duplicate states
-        charobj['states'] = json.dumps(list(set(charobj['states'])))
+        charobj.states = list(set(charobj.states))
 
-        Character.insert(charobj)
+        charobj.save()
 
         return charobj
 
     def is_owner(self, username, character):
         charobj = self.get_character(character)
         if charobj:
-            return charobj['owner'] == username
+            return charobj.owner == username
         else:
             return None
 
@@ -164,40 +127,29 @@ class CharacterController(object):
 #             return
 
         # Set the character's new position based on the x, y and z modifiers.
-        if charobj.get('loc'):
-            charobj['loc'] = json.loads(charobj['loc'])
-            charobj['loc']['x'] += xmod * charobj['speed']
-            charobj['loc']['y'] += ymod * charobj['speed']
-            charobj['loc']['z'] += zmod * charobj['speed']
-            charobj['last_modified'] = datetime.datetime.now()
-        else:
-            charobj['loc'] = dict(x=0, y=0, z=0)
+        charobj.loc_x += xmod * charobj.speed
+        charobj.loc_y += ymod * charobj.speed
+        charobj.loc_z += zmod * charobj.speed
+        charobj.set_modified()
 
         # Do simple physics here.
         # TODO: Split this into its own method.
         def manhattan(x1, y1, x2, y2):
             return abs(x1-x2) + abs(y1-y2)
 
-        charx, chary = charobj['loc']['x'], charobj['loc']['y']
-        for o in Object.find(physical=True):
+        for o in Object.get_objects(physical=True):
+            if o.id == charobj.id:
+                continue
             # Is the distance between that object and the character less than 3?
-            if o['loc']:
-                o['loc'] = json.loads(o['loc'])
-                print manhattan(o['loc']['x'], o['loc']['y'], charx, chary)
-                if manhattan(o['loc']['x'], o['loc']['y'], charx, chary) < 3:
-                    # We collided against something, so return now and don't
-                    # save the location changes into the database.
-                    return False
+            if manhattan(o.loc_x, o.loc_y, charobj.loc_x, charobj.loc_y) < 3:
+                # We collided against something, so return now and don't
+                # save the location changes into the database.
+                return False
 
         # We didn't collide, hooray!
         # So we'll save to the database and return it.
-        charobj['loc'] = json.dumps(charobj['loc'])
-        Character.insert(charobj)
-        charobj['loc'] = json.loads(charobj['loc'])
+        charobj.save()
         return charobj
-
-
-
 
 class CharStatusHandler(BaseHandler):
     '''Manages if a character is active in the zone or not.'''
@@ -243,11 +195,10 @@ class MovementHandler(BaseHandler):
 
         logging.info("Tried to set movement, result was: %s" % result)
 
-        # If our result is a mongo object, make it dumpable:
-        if hasattr(result, 'to_mongo'):
-            result = result.to_mongo()
-
-        retval = json.dumps(result)
+        if result is not False:
+            retval = result.json_dumps()
+        else:
+            retval = json.dumps(result, cls=ComplexEncoder)
 
         self.content_type = 'application/json'
         self.write(retval)
@@ -302,7 +253,7 @@ class DateLimitedObjectHandler(BaseHandler):
     target_object = None
 
     def head(self):
-        lastdate = self.target_object.find_one(order_by="-last_modified")['last_modified']
+        lastdate = Object.get_objects(limit=1).last_modified
         cache_time = 10*365*24*60*60 # 10 Years.
         self.set_header('Last-Modified', lastdate)
         self.set_header('Expires', lastdate + datetime.timedelta(seconds=cache_time))
@@ -310,13 +261,11 @@ class DateLimitedObjectHandler(BaseHandler):
 
     @tornado.web.authenticated
     def get(self):
-        if not self.target_object:
-            raise NotImplementedError("target_object must be a table.")
-
         since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
         if since.year == 2010:
             since = None
-        retval = json.dumps(self.get_objects(since))
+
+        retval = json.dumps([o for o in self.get_objects(since)], cls=ComplexEncoder)
         self.content_type = 'application/json'
         self.write(retval)
 
@@ -325,13 +274,7 @@ class DateLimitedObjectHandler(BaseHandler):
         Should not be called without an argument except when
         a client connects to the zone initially.'''
 
-        # Query the mongo messages database
-        if since is not None:
-            objects = self.target_object.query('SELECT * from :table WHERE last_modified >= :since ORDER BY last_modified', table=self.target_object.table.name, since=since)
-        else:
-            objects = self.target_object.order_by('-last_modified')
-
-        return objects
+        return Object.get_objects(since=since)
 
 
 class MessageHandler(DateLimitedObjectHandler):
@@ -356,7 +299,7 @@ class ScriptedObjectHandler(BaseHandler):
     def activate_object(self, object_id, character):
         # Instantiate the scripted object and call its activate thing.
         retval = []
-        for o in ScriptedObject.objects(id=object_id):
+        for o in [Object.get(id=object_id)]:
             # TODO: Break this block into a method.
             for script in o.scripts:
                 scriptclass = script.split('.')[-1]
@@ -383,6 +326,11 @@ class ScriptedObjectHandler(BaseHandler):
         return retval
 
 def main():
+    import tornado
+    from tornado.options import options, define
+
+    define("dburi", default='testing.sqlite', help="Where is the database?", type=str)
+
     tornado.options.parse_command_line()
 
     # Port
@@ -394,15 +342,23 @@ def main():
     # Owner
     owner = options.owner
 
+
+    tornado.options.parse_command_line()
+    dburi = options.dburi
+
     zoneid = '-'.join((instancetype, zonename, owner))
     print "ZoneID: %s" % zoneid
+
+    # Connect to the elixir db
+    from elixir_models import setup
+    setup(db_uri=dburi)
 
     print "Loading %s's data." % zonename
     from importlib import import_module
     # Import the zone's init script
     zonemodule = import_module('games.zones.'+zonename)
     # Initialize the zone
-    zonescript = zonemodule.Zone()
+    zonescript = zonemodule.Zone(logger=logging.getLogger('zoneserver.'+zoneid))
 
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))

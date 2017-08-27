@@ -26,18 +26,20 @@ class TestZoneScriptRunner(unittest.TestCase):
     def test_load_scripts(self):
         expected = {}
         zoneid = "zoneid"
-        with patch.object(ZoneScriptRunner, 'load_scripts'):
-            with patch('scriptserver.Object'):
-                zone_script_runner = ZoneScriptRunner(zoneid)
+        with patch('scriptserver.Object'):
+            with patch.object(ZoneScriptRunner, 'load_scripts'):
+                with patch('scriptserver.Object'):
+                    zone_script_runner = ZoneScriptRunner(zoneid)
 
         with patch('scriptserver.ScriptedObject') as ScriptedObject:
+            with patch('scriptserver.Object') as MockObject:
                 MockThing = Mock()
                 with patch.dict('sys.modules', {'thing': MockThing, 'thing.fake': MockThing.fake,
                                                 'thing.fake.chicken': MockThing.fake.chicken}):
                     MockThing.fake.chicken.Chicken.tick = Mock()
                     MockScriptedObject = Mock()
                     MockScriptedObject.scripts = ['thing.fake.chicken']
-                    ScriptedObject.objects.return_value = [MockScriptedObject]
+                    MockObject.get_objects.return_value = [MockScriptedObject]
                     result = zone_script_runner.load_scripts()
 
         self.assertNotEqual(expected, result)

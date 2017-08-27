@@ -38,7 +38,7 @@ from watchdog.events import FileSystemEventHandler
 
 import mongoengine as me
 
-from mongoengine_models import ScriptedObject, Message, Object
+from elixir_models import Object, Message, ScriptedObject
 from games.objects.basescript import Script
 
 import settings
@@ -59,17 +59,9 @@ class ZoneScriptRunner(BaseTickServer):
     def __init__(self, zoneid):
         super(ZoneScriptRunner, self).__init__()
 
-        # Make sure mongodb is up
-        while True:
-            try:
-                me.connect(zoneid)
-                break
-            except(me.connection.ConnectionError):
-                # Mongo's not up yet. Give it time.
-                time.sleep(.1)
-
         # While the zone is not loaded, wait.
-        while not Object.objects(name="Loading Complete."):
+        logger.info("Waiting for zone to complete loading.")
+        while not Object.get_objects(name="Loading Complete."):
             time.sleep(.1)
 
         # Watch the script path for any changes, and reboot the scriptserver if they do.
@@ -86,8 +78,8 @@ class ZoneScriptRunner(BaseTickServer):
 
         # Query DB for a list of all objects' script names,
         #   ordered according to proximity to players
-        logger.info(ScriptedObject.objects)
-        for o in ScriptedObject.objects(scripts__exists=True):
+        logger.info(Object.get_objects(scripted=True))
+        for o in Object.get_objects(scripted=True):
             logger.info("Scripted Object: {0}".format(o.name))
             # Store list of script names in self
 
@@ -123,14 +115,15 @@ class ZoneScriptRunner(BaseTickServer):
     def tick(self):
         '''Iterate through all known scripts and call their tick method.'''
         # Tick all the things
+        logger.info(self.scripts)
         for scriptname, scripts in self.scripts.items():
             for script in scripts:
                 logger.debug("Ticking {0}".format(script))
-                # TODO: Pass some locals or somesuch so that they can query the db (Actually: self.me_obj is the MongoEngine object.)
+                # TODO: Pass some locals or somesuch so that they can query the db
                 script.tick()
 
         # Clean up mongodb's messages by deleting all but the most recent 100 non-player messages
-        for m in Message.objects(player_generated=False).order_by('-sent')[settings.MAX_ZONE_OBJECT_MESSAGE_COUNT:]:
+        for m in Message.select().where(Message.player_generated==False).order_by('-sent')[settings.MAX_ZONE_OBJECT_MESSAGE_COUNT:]:
             logger.info("Deleting message from %s" % m.sent.time())
             m.delete()
 
@@ -140,7 +133,21 @@ class ZoneScriptRunner(BaseTickServer):
 
 if __name__ == "__main__":
     import sys
-    zoneid = sys.argv[1] if len(sys.argv) > 1 else "playerinstance-defaultzone-None"
+
+    import tornado
+    from tornado.options import options, define
+
+    define("dburi", default='testing.sqlite', help="Where is the database?", type=str)
+    define("zoneid", default='playerinstance-defaultzone-None', help="What is the zoneid?", type=str)
+
+    tornado.options.parse_command_line()
+    dburi = options.dburi
+    zoneid = options.zoneid
+
+    # Connect to the elixir db
+    from elixir_models import setup
+    setup(db_uri=dburi)
+
     zsr = ZoneScriptRunner(zoneid)
     try:
         zsr.start()

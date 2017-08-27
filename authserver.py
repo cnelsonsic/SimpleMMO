@@ -146,15 +146,13 @@ class RegistrationHandler(BaseHandler):
             return self.HTTPError(401, "User already exists.")
 
     def register_user(self, username, password, email=None):
+        if User.select().where(User.username==username).exists():
+            return False
+
         user = User(username=username,
                     password=UserController.hash_password(password),
                     email=email)
-        try:
-            db.commit()
-        except IntegrityError:
-            # User already exists.
-            db.rollback()
-            user = False
+        user.save()
         return user
 
 
@@ -205,7 +203,7 @@ class AuthHandler(BaseHandler):
         If they match, return True.
         Else, return False.'''
         # Do some database stuff here to verify the user.
-        user = User.query.filter_by(username=username).first()
+        user = User.get(username=username)
         if not user:
             return False
         return UserController.check_password(plaintext=password, hashed=user.password)
@@ -262,15 +260,14 @@ class CharacterHandler(BaseHandler):
 
     def get_characters(self, username):
         '''Queries the database for all characters owned by a particular user.'''
-        user = User.query.filter_by(username=username).first()
-        characters = Character.query.filter_by(user=user).all()
-        logging.info(characters)
-        return [c.name for c in characters]
+        user = User.get(username=username)
+        logging.info(user.characters)
+        return [c.name for c in user.characters]
 
 
 if __name__ == "__main__":
     from tornado.options import options, define
-    define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
+    define("dburi", default='simplemmo.sqlite', help="Where is the database?", type=str)
 
     tornado.options.parse_command_line()
     dburi = options.dburi
@@ -290,11 +287,12 @@ if __name__ == "__main__":
     from elixir_models import setup
     setup(db_uri=dburi)
 
-    user = User.query.filter_by(username=settings.DEFAULT_USERNAME).first()
-    if not user:
+    try:
+        user = User.get(username=settings.DEFAULT_USERNAME)
+    except User.DoesNotExist:
         password = UserController.hash_password(settings.DEFAULT_PASSWORD)
-        User(username=settings.DEFAULT_USERNAME, password=password)
-        db.commit()
+        user = User(username=settings.DEFAULT_USERNAME, password=password)
+        user.save()
 
     print "Starting up Authserver..."
     server.start()

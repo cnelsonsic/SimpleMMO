@@ -11,13 +11,7 @@ sys.path.append(".")
 
 import settings
 
-def enough_disk():
-    '''Determine if the disk we're on has more than about 400mb of free disk.
-    We use this because the mongodb server generally allocates about 400mb
-    worth of database files when it runs.'''
-    s = os.statvfs(".")
-    freebytes = s.f_bsize * s.f_bavail
-    return freebytes/1024/1024 > 400
+from elixir_models import setup as elixir_setup
 
 class IntegrationBase(unittest.TestCase):
     '''An integration test for the Client class.'''
@@ -25,7 +19,6 @@ class IntegrationBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.servers = []
-        cls.mongodb_dir = './mongodb-unittest/'
 
         # Wipe out the sqlite db.
         try:
@@ -34,21 +27,18 @@ class IntegrationBase(unittest.TestCase):
             # Don't care if it doesn't exist
             pass
 
-        if not enough_disk():
-            return
+        elixir_setup(db_uri='testing.sqlite')
 
         # Fire up servers to test against.
         servers = OrderedDict()
-        if not os.path.exists(cls.mongodb_dir):
-            os.mkdir(cls.mongodb_dir)
-        servers['http://localhost:28017'] = ['mongod', '--rest', '--oplogSize=1', '--directoryperdb', '--smallfiles', '--dbpath=%s' % cls.mongodb_dir]
-        servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=sqlite:///testing.sqlite']
-        servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=sqlite:///testing.sqlite']
-        servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=sqlite:///testing.sqlite']
+        servers[settings.AUTHSERVER] = [sys.executable]+['authserver.py', '--dburi=testing.sqlite']
+        servers[settings.CHARSERVER] = [sys.executable]+['charserver.py', '--dburi=testing.sqlite']
+        servers[settings.ZONESERVER] = [sys.executable]+['masterzoneserver.py', '--dburi=testing.sqlite']
         for uri, args in servers.iteritems():
             if sys.executable in args:
                 args.extend(['--log-file-prefix=log/%s.log' % args[1], '--logging=info'])
             cmd = args
+            print cmd
             s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             cls.servers.append(s)
             status = None
@@ -63,13 +53,10 @@ class IntegrationBase(unittest.TestCase):
     def tearDownClass(cls):
         for server in cls.servers:
             server.send_signal(SIGINT)
-        import shutil
-        try:
-            shutil.rmtree(cls.mongodb_dir)
-        except OSError:
-            # Don't care if it's nonexistent.
-            pass
 
-    def setUp(self):
-        if not enough_disk():
-            self.skipTest("Not enough disk space to run this test.")
+        # Wipe out the sqlite db.
+        try:
+            os.remove('testing.sqlite')
+        except OSError:
+            # Don't care if it doesn't exist
+            pass

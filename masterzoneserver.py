@@ -38,7 +38,7 @@ NEXTCLEANUP = time.time()+(5*60)
 
 JOBS = []
 
-from elixir_models import session, Zone
+from elixir_models import Zone, Character
 logging.getLogger('connectionpool').setLevel(logging.ERROR)
 
 class ZoneHandler(BaseHandler):
@@ -72,28 +72,21 @@ class ZoneHandler(BaseHandler):
         zoneid = '-'.join((instance_type, name, owner))
 
         # If it's in the database, it's probably still up:
-        zone = Zone.get_by(zoneid=zoneid)
-        if zone and zone.url:
-            logging.info("Got zone url %s for zoneid %s from database." % (zone.url, zoneid))
-            return zone.url
+        try:
+            zone = Zone.get(zoneid=zoneid)
+        except Zone.DoesNotExist:
+            zone = None
 
-        # See if it's already up:
-        zones = Zone.query.filter_by(zoneid=zoneid).all()
-#         from settings import PROTOCOL, HOSTNAME
         serverurl = None
-        for zone in zones:
+        if zone:
             port = zone.port
             serverurl = zone.url
-#             serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port.port)
             try:
                 status = requests.get(serverurl).status_code
                 if status == 200:
                     logging.info("Server was already up and in the db: %s" % serverurl)
-                    break
             except (requests.ConnectionError, requests.URLRequired):
                 serverurl = None
-                continue
-
 
         # Server is not already up
         if not serverurl:
@@ -114,8 +107,8 @@ class ZoneHandler(BaseHandler):
             elif START_ZONE_WITH == SUBPROCESS:
                 logging.info("Starting process with subprocess.")
                 from start_subprocess import start_zone, start_scriptserver
-                z, serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
                 s = start_scriptserver(zonename=name, instancetype=instance_type, owner=owner)
+                z, serverurl = start_zone(zonename=name, instancetype=instance_type, owner=owner)
                 JOBS.extend([z, s])
 
             elif START_ZONE_WITH == DOCKER:
@@ -149,8 +142,17 @@ class ZoneHandler(BaseHandler):
         # If successful, write our URL to the database and return it
         # Store useful information in the database.
         logging.info(serverurl)
-        Zone(zoneid=zoneid, port=serverurl.split(":")[-1], owner=owner, url=serverurl)
-        session.commit()
+        try:
+            zone = Zone.get(zoneid=zoneid)
+        except Zone.DoesNotExist:
+            zone = Zone()
+
+        zone.zoneid=zoneid
+        zone.port=serverurl.split(":")[-1]
+        zone.character=Character.get(name=owner)
+        zone.url=serverurl
+
+        zone.save()
         logging.info("Zone server came up at %s." % serverurl)
         return serverurl
 
@@ -169,7 +171,7 @@ if __name__ == "__main__":
 
     import tornado
     from tornado.options import options, define
-    define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
+    define("dburi", default='testing.sqlite', help="Where is the database?", type=str)
 
     tornado.options.parse_command_line()
     dburi = options.dburi
@@ -179,14 +181,13 @@ if __name__ == "__main__":
     setup(db_uri=dburi)
 
     # On startup, iterate through entries in zones table. See if they are up, if not, delete them.
-    for port in [z[0] for z in session.query(Zone.port).all()]:
+    for port in [z.port for z in Zone.select()]:
         serverurl = "%s://%s:%d" % (PROTOCOL, HOSTNAME, port)
         try:
             requests.get(serverurl)
         except(requests.ConnectionError):
             # Server is down, remove it from the zones table.
-            Zone.query.filter_by(port=port).delete(), Zone
-        session.commit()
+            Zone.get(port=port).delete_instance()
 
     server = BaseServer(handlers)
     server.listen(MASTERZONESERVERPORT)

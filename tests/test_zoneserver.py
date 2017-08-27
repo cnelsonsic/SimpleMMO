@@ -39,19 +39,23 @@ class TestCharacterControllerGetCharacter(unittest.TestCase):
         self.character_controller = CharacterController()
 
     def test_get_character(self):
-        mock_char = dict(states='[]')
+        mock_char = Mock()
         MockCharacter = Mock()
-        MockCharacter.find_one = Mock(return_value=mock_char)
+        MockCharacter.get_objects = Mock(return_value=mock_char)
 
-        with patch.object(zoneserver, 'Character', MockCharacter):
+        with patch.object(zoneserver, 'Object', MockCharacter):
             result = self.character_controller.get_character("character")
+
+        self.assertNotEqual(result, False)
         self.assertEqual(mock_char, result)
 
     def test_get_character_non_existent_no_states(self):
+        from elixir_models import Object
         MockCharacter = Mock()
-        MockCharacter.find_one = None
+        MockCharacter.get_objects = Mock(side_effect=Object.DoesNotExist(''))
+        MockCharacter.DoesNotExist = Object.DoesNotExist
 
-        with patch.object(zoneserver, 'Character', MockCharacter):
+        with patch.object(zoneserver, 'Object', MockCharacter):
             result = self.character_controller.get_character("character")
 
         self.assertFalse(result)
@@ -61,7 +65,7 @@ class TestCharacterControllerSetCharacterStatus(unittest.TestCase):
         self.character_controller = CharacterController()
 
     def test_set_char_status(self):
-        mock_char = dict(name="char", states='["alive"]')
+        mock_char = Mock(name='char', states=['alive'])
 
         with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
             result = self.character_controller.set_char_status("character", 'alive')
@@ -69,29 +73,29 @@ class TestCharacterControllerSetCharacterStatus(unittest.TestCase):
         self.assertEqual(result, mock_char)
 
     def test_set_char_status_with_new_state(self):
-        mock_char = dict(name="char", states='[]')
+        mock_char = Mock(name='char', states=[])
 
         with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
             self.character_controller.set_char_status("character", 'alive')
 
-        self.assertTrue('alive' in mock_char['states'])
+        self.assertTrue('alive' in mock_char.states)
 
     def test_set_char_status_mutually_exclusive(self):
-        mock_char = dict(name="char", states='[]')
+        mock_char = Mock(name='char', states=[])
 
         with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
             self.character_controller.set_char_status("character", 'online')
 
-        self.assertTrue('online' in mock_char['states'])
+        self.assertTrue('online' in mock_char.states)
 
     def test_set_char_status_mutually_exclusive_flip(self):
-        mock_char = dict(name="char", states='["online"]')
+        mock_char = Mock(name='char', states=['online'])
 
         with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
             self.character_controller.set_char_status("character", 'offline')
 
-        self.assertTrue('offline' in mock_char['states'])
-        self.assertTrue('online' not in mock_char['states'])
+        self.assertTrue('offline' in mock_char.states)
+        self.assertTrue('online' not in mock_char.states)
 
 class TestCharacterControllerCreateCharacter(unittest.TestCase):
     def setUp(self):
@@ -106,10 +110,10 @@ class TestCharacterControllerCreateCharacter(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_create_character_with_new_charobj(self):
-        mock_char = dict(name="character", states=["player"], owner='', speed=5)
-        MockCharacter = Mock(name="Character", return_value=mock_char)
 
-        with patch.object(zoneserver, 'Character', MockCharacter):
+        mock_char = Mock()
+        MockObject = Mock(return_value=mock_char)
+        with patch.object(zoneserver, 'Object', MockObject):
             with patch.object(self.character_controller, 'get_character', Mock(return_value=None)):
                 result = self.character_controller.create_character("character")
 
@@ -120,7 +124,7 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
         self.character_controller = CharacterController()
 
         self.MockObject = Mock(name="Object")
-        self.MockObject.find = Mock(return_value=list())
+        self.MockObject.get_objects = Mock(return_value=list())
         self.character_patch = patch.object(zoneserver, 'Object', self.MockObject)
         self.character_patch.start()
 
@@ -128,49 +132,27 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
         self.character_patch.stop()
 
     def test_set_movement(self):
-        mock_char = dict(speed=1)
+        mock_char = Mock(speed=1, loc_x=0, loc_y=0, loc_z=0)
 
         with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
             result = self.character_controller.set_movement("character", 1, 2, 3)
 
-        self.assertEqual(result['loc']['x'], 0)
+        self.assertEqual(result.loc_x, 1)
+        self.assertEqual(result.loc_y, 2)
+        self.assertEqual(result.loc_z, 3)
 
     def test_set_movement_existing_loc(self):
-        mock_char = dict(loc='{"x": 0, "y": 0, "z": 0}', speed=1)
+        mock_char = Mock(speed=1, loc_x=0, loc_y=0, loc_z=0)
 
         with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
             result = self.character_controller.set_movement("character", 1, 2, 3)
 
-        self.assertGreater(result['loc']['x'], 0)
-
-    def test_set_movement_loc_is_none(self):
-        mock_char = dict(loc=None, speed=1)
-
-        with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
-            result = self.character_controller.set_movement("character", 1, 2, 3)
-
-        self.assertEqual(result['loc']['x'], 0)
-
-    def test_set_movement_other_loc_is_none(self):
-        '''When another object's loc is None,
-        set_movement should not die horribly.'''
-        mock_char = dict(loc='{"x": 0, "y": 0, "z": 0}', speed=1)
-
-        mock_bad_obj = dict(loc=None)
-
-        MockObject = Mock()
-        MockObject.find = Mock(return_value=[mock_bad_obj])
-
-        with patch.object(zoneserver, 'Object', MockObject):
-            with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
-                result = self.character_controller.set_movement("character", 1, 2, 3)
-
-        self.assertEqual(result['loc']['x'], 1)
+        self.assertGreater(result.loc_x, 0)
 
     def test_set_movement_physics_collision(self):
-        mock_char = dict(loc='{"x": 0, "y": 0, "z": 0}', speed=1)
+        mock_char = Mock(speed=1, loc_x=0, loc_y=0, loc_z=0)
 
-        self.MockObject.find = Mock(return_value=[mock_char])
+        self.MockObject.get_objects = Mock(return_value=[mock_char])
 
         from copy import deepcopy
         with patch.object(zoneserver, 'Object', self.MockObject):
@@ -180,11 +162,10 @@ class TestCharacterControllerSetMovement(unittest.TestCase):
         self.assertFalse(result)
 
     def test_set_movement_physics_no_collision(self):
-        mock_char = dict(loc='{"x": 0, "y": 0, "z": 0}', speed=1)
+        mock_char = Mock(speed=1, loc_x=0, loc_y=0, loc_z=0)
+        mock_otherchar = Mock(speed=1, loc_x=4, loc_y=4, loc_z=4)
 
-        mock_otherchar = dict(loc='{"x": 4, "y": 4, "z": 0}', speed=1)
-
-        self.MockObject.find = Mock(return_value=[mock_otherchar])
+        self.MockObject.get_objects = Mock(return_value=[mock_otherchar])
 
         with patch.object(zoneserver, 'Object', self.MockObject):
             with patch.object(self.character_controller, 'create_character', Mock(return_value=mock_char)):
@@ -201,11 +182,11 @@ class TestCharacterControllerIsOwner(unittest.TestCase):
         username = "username"
         character = "character"
 
-        mock_char = dict(name=character, owner=username)
-        MockCharacter = Mock()
-        MockCharacter.find_one = Mock(return_value=mock_char)
+        mock_char = Mock(name=character, owner=username)
+        MockObject = Mock()
+        MockObject.get_objects = Mock(return_value=mock_char)
 
-        with patch.object(zoneserver, 'Character', MockCharacter):
+        with patch.object(zoneserver, 'Object', MockObject):
             result = self.character_controller.is_owner(username, character)
 
         self.assertTrue(result)
@@ -214,9 +195,12 @@ class TestCharacterControllerIsOwner(unittest.TestCase):
         username = "username"
         character = "character"
 
-        MockCharacter = Mock()
-        MockCharacter.find_one = Mock(return_value=None)
-        with patch.object(zoneserver, 'Character', MockCharacter):
+        MockObject = Mock(name="NoChar")
+        from elixir_models import Object
+        MockObject.DoesNotExist = Object.DoesNotExist
+        MockObject.get_objects = Mock(side_effect=Object.DoesNotExist(''))
+
+        with patch.object(zoneserver, 'Object', MockObject):
             result = self.character_controller.is_owner(username, character)
 
         self.assertEqual(result, None)
@@ -231,8 +215,8 @@ class TestDateLimitedObjectHandlerUnit(unittest.TestCase):
         expected = []
 
         MockObject = Mock()
-        MockObject.order_by = Mock(return_value=expected)
-        with patch('zoneserver.DateLimitedObjectHandler.target_object', MockObject):
+        MockObject.get_objects = Mock(return_value=expected)
+        with patch.object(zoneserver, 'Object', MockObject):
             result = self.objects_handler.get_objects()
 
         self.assertEqual(expected, result)
@@ -241,8 +225,8 @@ class TestDateLimitedObjectHandlerUnit(unittest.TestCase):
         expected = []
 
         MockObject = Mock()
-        MockObject.query = Mock(return_value=expected)
-        with patch('zoneserver.DateLimitedObjectHandler.target_object', MockObject):
+        MockObject.get_objects = Mock(return_value=expected)
+        with patch.object(zoneserver, 'Object', MockObject):
             result = self.objects_handler.get_objects(since=datetime.datetime.now())
             print result
 
@@ -310,9 +294,10 @@ class TestScriptedObjectHandler(unittest.TestCase):
 
         MockScriptModule = Mock(MyScript=MyScript, name='testscript')
 
-        with patch.object(zoneserver, 'ScriptedObject', MockScriptedObject):
-            with patch.dict('sys.modules', {'games.objects.testscript': MockScriptModule}):
-                result = self.scripted_object_handler.activate_object(None, None)
+        with patch.object(zoneserver, 'Object', Mock(get=Mock(return_value=mock_scripted_object))):
+            with patch.object(zoneserver, 'ScriptedObject', MockScriptedObject):
+                with patch.dict('sys.modules', {'games.objects.testscript': MockScriptModule}):
+                    result = self.scripted_object_handler.activate_object(None, None)
 
         self.assertEqual(expected, result)
 

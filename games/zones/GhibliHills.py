@@ -1,22 +1,12 @@
 # This file is imported when the zone wants to load an instance of this zone.
 
-from random import randint, uniform
+from games.zones.basezone import randloc, randrot, randscale
+from games.zones.basezone import BaseZone
 
-from mongoengine_models import Object, ScriptedObject
-from mongoengine_models import IntVector, FloatVector
+from elixir_models import Object
 
-# Some helpers for random.
-def randloc():
-    return randint(-100, 100)
-
-def randrot():
-    return randint(-360, 360)
-
-def randscale():
-    return uniform(.75, 1.25)
-
-class Zone(object):
-    def __init__(self):
+class Zone(BaseZone):
+    def __init__(self, logger=None, *args, **kwargs):
         '''Initialize the zone.
         Insert whatever objects into the database programmatically.
         This includes loading things from a disk file if you so choose.
@@ -26,25 +16,10 @@ class Zone(object):
         a script to apply changes, or just delete the database for
         that zone and recreate it when the zone is started up again.
         '''
+        super(Zone, self).__init__()
 
-        if not self.is_loaded():
-            self.insert_objects()
-            # Loading complete.
-            self.set_loaded()
+        self.logger.info("Starting GhibliHills zone script...")
 
-    def is_loaded(self):
-        return True if Object.objects(name="Loading Complete.") else False
-
-    def set_loaded(self):
-        from sys import maxint
-
-        obj = Object()
-        obj.name = "Loading Complete."
-        far = maxint*-1
-        obj.loc = IntVector(x=far, y=far, z=far)
-        obj.states.extend(['hidden'])
-        obj.save()
-        print obj.name
 
     def insert_objects(self):
         '''Insert any objects you want to be present in the zone into the
@@ -58,18 +33,20 @@ class Zone(object):
         Do not do this.
         '''
 
+        self.logger.info("Placing chickens...")
+
         # Place 10 chickens randomly:
         for i in xrange(10):
-            obj = ScriptedObject()
+            obj = Object()
             obj.name = "Chicken #%d" % i
             obj.resource = 'chicken'
-            obj.loc = IntVector(x=randloc(), y=randloc(), z=randloc())
-            obj.rot = FloatVector(x=randrot(), y=randrot(), z=randrot())
-            obj.scale = FloatVector(x=randscale(), y=randscale(), z=randscale())
-            obj.vel = FloatVector(x=0, y=0, z=0)
+            obj.loc_x, obj.loc_y, obj.loc_z = randloc(), randloc(), randloc()
+            obj.rot_x, obj.rot_y, obj.rot_z = randrot(), randrot(), randrot()
+            obj.scale_x, obj.scale_y, obj.scale_z = randscale(), randscale(), randscale()
+            obj.vel_x, obj.vel_y, obj.vel_z = 0, 0, 0
             obj.states.extend(['alive', 'whole', 'clickable'])
             obj.scripts = ['games.objects.chicken']
             obj.save()
 
-        print [o.name for o in Object.objects()]
+        self.logger.info(str([o.name for o in Object.get_objects()]))
 
