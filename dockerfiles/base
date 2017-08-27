@@ -1,5 +1,7 @@
 FROM ubuntu:precise
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get -q -y --no-install-recommends install \
 	curl \
 	git \
@@ -9,7 +11,6 @@ RUN apt-get update && apt-get -q -y --no-install-recommends install \
 	build-essential \
 	sqlite3 \
 	supervisor \
-	mongodb \
 	vim && \
 	apt-get -y autoremove && \
 	rm -rf /var/lib/apt/lists/*

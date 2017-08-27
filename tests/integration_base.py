@@ -8,6 +8,7 @@ import unittest
 import os
 import sys
 sys.path.append(".")
+import time
 
 import settings
 
@@ -38,16 +39,19 @@ class IntegrationBase(unittest.TestCase):
             if sys.executable in args:
                 args.extend(['--log-file-prefix=log/%s.log' % args[1], '--logging=info'])
             cmd = args
-            print cmd
             s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             cls.servers.append(s)
             status = None
+            tries = 0
             while status != 200:
                 try:
                     r = requests.get(uri)
                     status = r.status_code
-                except requests.ConnectionError:
+                    print r.text
+                except requests.ConnectionError, e:
                     continue
+                tries += 1
+                time.sleep(0.1*tries)
 
     @classmethod
     def tearDownClass(cls):

@@ -19,7 +19,11 @@ test:
 	docker run --rm -u 1000 -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.pyc; mv __init__.py __init__.py.bak; nosetests --exe -v tests/; mv __init__.py.bak __init__.py'
 
 full-test: build
-	docker run --rm -u 1000 -it simplemmo-cli bash -c 'rm __init__.py*; nosetests --exe -v tests/'
+	docker run --rm -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.py*; \
+	  nosetests --exe -v tests/test_authserver.py tests/test_charserver.py tests/test_zoneserver.py tests/test_scriptserver.py tests/test_elixir_models.py; \
+	  tail -q -F log/* & \
+	  nosetests --exe -s -v tests/test_client.py;\
+	  '
 
 build: 
 	$(foreach PACKAGE_INFO,$(BUILDABLE_PACKAGES), \
