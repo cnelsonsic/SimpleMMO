@@ -34,8 +34,7 @@ This should be started by the ZoneServer.
 from uuid import uuid4
 import datetime
 
-import mongoengine as me
-from mongoengine_models import Object
+# TODO: This still needs ported from Mongo to Peewee, but it's unused so I'm leaving it for now.
 
 import pymunk as pm
 from pymunk import Vec2d
@@ -52,15 +51,6 @@ class PhysicsServer(BaseTickServer):
     def __init__(self, zoneid):
         super(PhysicsServer, self).__init__()
         self.zoneid = zoneid
-
-        # Make sure mongodb is up
-        while True:
-            try:
-                me.connect(zoneid)
-                break
-            except(me.connection.ConnectionError):
-                # Mongo's not up yet. Give it time.
-                time.sleep(.1)
 
         print "Started with data for zone: %s" % zoneid
 

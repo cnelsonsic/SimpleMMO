@@ -13,6 +13,21 @@ def randrot():
 def randscale():
     return uniform(.75, 1.25)
 
+def randobj(ObjClass, name="Object #%s", resource='object', count=1, states=None, scripts=None):
+    objs = []
+    for i in xrange(count):
+        obj = ObjClass()
+        obj.name = name % i
+        obj.resource = resource
+        obj.loc = IntVector(x=randloc(), y=randloc(), z=randloc())
+        obj.rot = FloatVector(x=randrot(), y=randrot(), z=randrot())
+        obj.scale = FloatVector(x=randscale(), y=randscale(), z=randscale())
+        obj.vel = FloatVector(x=0, y=0, z=0)
+        obj.states.extend(states)
+        obj.scripts.extend(scripts)
+        obj.save()
+        objs.append(obj)
+    return objs
 
 class BaseZone(object):
     def __init__(self, logger=None):
