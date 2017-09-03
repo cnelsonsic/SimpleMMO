@@ -257,6 +257,7 @@ class CharacterHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         self.write(json.dumps(self.get_characters(self.get_current_user())))
+        self.set_header('Content-Type', 'application/json')
 
     def get_characters(self, username):
         '''Queries the database for all characters owned by a particular user.'''
@@ -295,4 +296,7 @@ if __name__ == "__main__":
         user.save()
 
     print "Starting up Authserver..."
-    server.start()
+    try:
+        server.start()
+    except KeyboardInterrupt:
+        print "Exiting Authserver."

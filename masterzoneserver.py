@@ -25,6 +25,7 @@ A server providing URLs to ZoneServers.
 
 import time
 import logging
+from signal import SIGINT
 
 import tornado
 import requests
@@ -200,4 +201,5 @@ if __name__ == "__main__":
         pass
 
     for job in JOBS:
-        job.terminate()
+        job.send_signal(SIGINT)
+        logging.info(job.stdout.read())

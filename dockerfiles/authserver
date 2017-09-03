@@ -2,4 +2,4 @@ FROM simplemmo-base:latest
 
 EXPOSE 1234
 
-CMD ["/usr/bin/python", "authserver.py", "--dburi=sqlite:////database/simplemmo.sqlite"]
+CMD ["/usr/bin/python", "authserver.py", "--dburi=/database/simplemmo.sqlite"]

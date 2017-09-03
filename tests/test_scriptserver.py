@@ -6,14 +6,6 @@ sys.path.append(".")
 from scriptserver import ZoneScriptRunner
 
 class TestZoneScriptRunner(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.mongoengine_patch = patch('scriptserver.me')
-        cls.mongoengine_patch.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.mongoengine_patch.stop()
 
     def test___init__(self):
         zoneid = "zoneid"

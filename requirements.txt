@@ -6,9 +6,10 @@ dataset==0.6.2
 requests==0.12.1
 passlib==1.6
 watchdog==0.6.0
+cachelper==0.1.5
 
-pymongo==2.1.1 #v2.2 deprecates pymongo.json_util in favor of bson.json_util, which is apparently broken.
-mongoengine==0.6.10
+#pymongo==2.1.1 #v2.2 deprecates pymongo.json_util in favor of bson.json_util, which is apparently broken.
+#mongoengine==0.6.10
 
 pymunk==2.1.0
 
@@ -38,6 +39,7 @@ PyYAML==3.11
 Pygments==2.1.1
 SQLAlchemy==0.7.10
 South==1.0.2
+Werkzeug==0.12.2
 amqp==1.4.9
 anyjson==0.3.3
 argh==0.26.1

@@ -1,9 +1,6 @@
 
 from games.objects.basescript import Script
 
-from games.zones.basezone import randloc, randrot, randscale
-from mongoengine_models import ScriptedObject
-from mongoengine_models import IntVector, FloatVector
 
 class Chicken(Script):
     def __init__(self, *args, **kwargs):
@@ -18,10 +15,10 @@ class Chicken(Script):
         obj = ScriptedObject()
         obj.name = "Chicken #%d" % number
         obj.resource = 'chicken'
-        obj.loc = IntVector(x=randloc(), y=randloc(), z=randloc())
-        obj.rot = FloatVector(x=randrot(), y=randrot(), z=randrot())
-        obj.scale = FloatVector(x=randscale(), y=randscale(), z=randscale())
-        obj.vel = FloatVector(x=0, y=0, z=0)
+        obj.loc = (randloc(), randloc(), randloc())
+        obj.rot = (randrot(), randrot(), randrot())
+        obj.scale = (randscale(), randscale(), randscale())
+        obj.vel = (0, 0, 0)
         obj.states.extend(['alive', 'whole', 'clickable'])
         obj.scripts = ['games.objects.chicken']
         obj.save()

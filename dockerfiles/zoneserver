@@ -2,6 +2,4 @@ FROM simplemmo-base:latest
 
 EXPOSE 1300
 
-ADD supervisord-zone.conf supervisord.conf
-
-CMD ["/usr/local/bin/supervisord"]
+CMD /usr/bin/python zoneserver.py --dburi=/database/simplemmo.sqlite --port=$PORT --instancetype=$INSTANCETYPE --zonename=$ZONENAME --owner=$OWNER --log_file_prefix=$LOGFILEPREFIX --logging=$LOGLEVEL

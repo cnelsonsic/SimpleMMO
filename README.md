@@ -5,49 +5,13 @@ SimpleMMO
 
 Quick Installation
 ------------------
-### Virtualbox/Vagrant Server Appliance
-SimpleMMO ships with a virtualbox/vagrant appliance which you can spin up
-for testing or development.
-It provides a linux environment, and all the dependencies pre-configured for you.
 
-#### Installing
-You need [VirtualBox](https://www.virtualbox.org/) and [Vagrant](http://vagrantup.com/).
+1. Install [Docker](https://www.docker.com/).
+1. `make cli`
 
-#### Running
-When in the ``vagrant`` directory of the SimpleMMO checkout, run ``vagrant up``.
-In 5-10 minutes, you should have a shiny new development/testing server.
-You can access it via ``vagrant ssh``, which gives you a terminal inside your vagrant box.
-Discussions on using vagrant are beyond the scope of this README, so ``vagrant -h`` is your friend.
+Once this finishes running, you should be dropped to a prompt.
 
-#### Client
-From inside the vagrant box (via ``vagrant ssh``), you can start up the command-line client with:
-
-    ./client.py
-
-The following commands are supported:
-
-    register: Register a username and password combination.
-    login: Log in as a user.
-    update: Update the objects from the zone server.
-    map: Show a map of the zone.
-    detail: Show details about a given object by name or id.
-
-
-### Native Server Install
-You will need pip to install the requirements, you can do something like:
-
-    sudo apt-get install python-pip
-or
-
-    sudo yum install python-pip
-
-You'll need to use pip to install the required python packages:
-
-    sudo pip install -r requirements.txt
-
-SimpleMMO uses supervisor to control its server processes, so you will need to
-start them by running `supervisord` while in the SimpleMMO checkout directory.
-You can use `supervisorctl` to check up on the server processes.
+Type 'help' for help.
 
 
 Servers

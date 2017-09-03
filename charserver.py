@@ -43,6 +43,7 @@ class CharacterZoneHandler(BaseHandler):
 
     def get(self, character):
         self.write(json.dumps(self.get_zone(character)))
+        self.set_header('Content-Type', 'application/json')
 
     def get_zone(self, charname):
         '''Queries the database for information pertaining directly
@@ -70,8 +71,9 @@ class CharacterCreationHandler(BaseHandler):
 
     def create(self, character_name):
         logging.info("Creating a character named %s" % character_name)
-        user = User.get(username=self.get_current_user())
-        if not user:
+        try:
+            user = User.get(username=self.get_current_user())
+        except User.DoesNotExist:
             return
 
         if Character.select().where(Character.name==character_name).exists():
@@ -102,4 +104,7 @@ if __name__ == "__main__":
     setup(db_uri=dburi)
 
     print "Starting up Charserver..."
-    server.start()
+    try:
+        server.start()
+    except KeyboardInterrupt:
+        logging.info("Exiting Charserver.")

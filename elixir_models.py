@@ -30,9 +30,6 @@ class RetryDB(RetryOperationalError, SqliteExtDatabase):
     pass
 
 db = RetryDB(None, fields={'json':'json'})
-# db = RetryDB(None, fields={'json':'json'}, pragmas=[('journal_mode', 'wal')])
-
-# db = PooledSqliteExtDatabase(None, pragmas=[('journal_mode', 'wal')], max_connections=30, stale_timeout=3600, check_same_thread=False, fields={'json':'json'})
 
 import json 
 class ComplexEncoder(json.JSONEncoder):
@@ -136,6 +133,14 @@ class Object(BaseModel):
     last_modified = DateTimeField(default=datetime.datetime.now)
 
     scripts = JSONField(default=[])
+
+    @property
+    def loc(self):
+        return (self.loc_x, self.loc_y, self.loc_z)
+
+    @loc.setter
+    def loc(self, val):
+        self.loc_x, self.loc_y, self.loc_z = val
 
     def set_modified(self, date_time=None):
         if date_time is None:

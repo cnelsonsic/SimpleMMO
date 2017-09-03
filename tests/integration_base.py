@@ -4,6 +4,7 @@ import requests
 from collections import OrderedDict
 from signal import SIGINT
 import unittest
+import logging
 
 import os
 import sys
@@ -57,6 +58,7 @@ class IntegrationBase(unittest.TestCase):
     def tearDownClass(cls):
         for server in cls.servers:
             server.send_signal(SIGINT)
+            logging.info(server.stdout.read())
 
         # Wipe out the sqlite db.
         try:

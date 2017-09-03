@@ -36,7 +36,6 @@ logger.setLevel(logging.INFO)
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-import mongoengine as me
 
 from elixir_models import Object, Message, ScriptedObject
 from games.objects.basescript import Script
@@ -154,4 +153,4 @@ if __name__ == "__main__":
     except:
         zsr.observer.stop()
         zsr.observer.join()
-        raise
+        logger.info("Exiting Scriptserver.")

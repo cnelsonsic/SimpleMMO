@@ -1,0 +1,3 @@
+FROM bluszcz/godot
+
+CMD /bin/bash

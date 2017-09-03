@@ -13,21 +13,6 @@ def randrot():
 def randscale():
     return uniform(.75, 1.25)
 
-def randobj(ObjClass, name="Object #%s", resource='object', count=1, states=None, scripts=None):
-    objs = []
-    for i in xrange(count):
-        obj = ObjClass()
-        obj.name = name % i
-        obj.resource = resource
-        obj.loc = IntVector(x=randloc(), y=randloc(), z=randloc())
-        obj.rot = FloatVector(x=randrot(), y=randrot(), z=randrot())
-        obj.scale = FloatVector(x=randscale(), y=randscale(), z=randscale())
-        obj.vel = FloatVector(x=0, y=0, z=0)
-        obj.states.extend(states)
-        obj.scripts.extend(scripts)
-        obj.save()
-        objs.append(obj)
-    return objs
 
 class BaseZone(object):
     def __init__(self, logger=None):
@@ -43,6 +28,25 @@ class BaseZone(object):
 
         self.setup_logging(logger=logger)
         self.load()
+
+    @staticmethod
+    def randobj(name="Object #%s", resource='object', count=1, states=None, scripts=None):
+        objs = []
+        for i in xrange(count):
+            obj = Object()
+            obj.name = name % i
+            obj.resource = resource
+            obj.loc_x, obj.loc_y, obj.loc_z = randloc(), randloc(), randloc()
+            obj.rot_x, obj.rot_y, obj.rot_z = randrot(), randrot(), randrot()
+            obj.scale_x, obj.scale_y, obj.scale_z = randscale(), randscale(), randscale()
+            obj.vel_x, obj.vel_y, obj.vel_z = 0, 0, 0
+            if states:
+                obj.states.extend(states)
+            if scripts:
+                obj.scripts.extend(scripts)
+            obj.save()
+            objs.append(obj)
+        return objs
 
     def setup_logging(self, logger=None):
         if logger:

@@ -29,6 +29,8 @@ import logging
 
 import tornado
 
+import cachelper
+
 from baseserver import BaseServer, SimpleHandler, BaseHandler
 
 from settings import DATETIME_FORMAT
@@ -264,11 +266,13 @@ class DateLimitedObjectHandler(BaseHandler):
         since = datetime.datetime.strptime(self.get_argument('since', '2010-01-01 00:00:00:000000'), DATETIME_FORMAT)
         if since.year == 2010:
             since = None
+        logging.info("Fetching objects since %s" % str(since))
 
         retval = json.dumps([o for o in self.get_objects(since)], cls=ComplexEncoder)
         self.content_type = 'application/json'
         self.write(retval)
 
+    @cachelper.memoize(timeout=3) # Up to 3 seconds of lag if a client is super lazy about full refreshes.
     def get_objects(self, since=None):
         '''Gets a list of things from the database.
         Should not be called without an argument except when
@@ -373,7 +377,10 @@ def main():
     server.listen(port)
 
     print "Starting up Zoneserver..."
-    server.start()
+    try:
+        server.start()
+    except KeyboardInterrupt:
+        logging.info("Exiting %s." % zoneid)
 
 if __name__ == "__main__":
     main()

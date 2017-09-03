@@ -2,4 +2,4 @@ FROM simplemmo-base:latest
 
 EXPOSE 1235
 
-CMD ["/usr/bin/python", "charserver.py", "--dburi=sqlite:////database/simplemmo.sqlite"]
+CMD ["/usr/bin/python", "charserver.py", "--dburi=/database/simplemmo.sqlite"]

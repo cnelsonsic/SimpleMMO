@@ -15,10 +15,10 @@ class Zone(BaseZone):
         '''
 
         # Place 100 barrels randomly:
-        randobj(Object, name="Barrel #%d", resource='barrel', states=['closed', 'whole', 'clickable'], count=100)
+        self.randobj(name="Barrel #%d", resource='barrel', states=['closed', 'whole', 'clickable'], count=100)
 
         # Place 10 chickens randomly:
-        randobj(Object, name="Chicken #%d", resource='chicken', scripts=['games.objects.chicken'], count=10)
+        self.randobj(name="Chicken #%d", resource='chicken', scripts=['games.objects.chicken'], count=10)
 
         print [o.name for o in Object.objects()]
 

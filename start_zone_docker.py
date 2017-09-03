@@ -41,11 +41,6 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
         # "The door's locked. Move on to the next one."
         port += 1
 
-    args = ['simplemmo-zoneserver', '--port=%d' % port,
-                                '--instancetype=%s' % instancetype,
-                                '--zonename=%s' % zonename,
-                                '--owner=%s' % owner]
-
     args = ['run', 
             '--detach',
             '--name=simplemmo-zoneserver-'+zonename, 
@@ -59,12 +54,12 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
             '-it',
             'simplemmo-zoneserver']
 
-    cmd = ['docker']+args
+    cmd = ['/usr/local/bin/docker']+args
     print ' '.join(args)
     print url
     logging.info("Starting %s" % ' '.join(args))
     logging.info("Server url: %s" % url)
-    s = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    s = subprocess.Popen(' '.join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return s, url
 
 def start_scriptserver(zonename="defaultzone", instancetype="playerinstance", owner="Groxnor"):
