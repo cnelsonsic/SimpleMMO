@@ -238,7 +238,7 @@ class TestClient(IntegrationBase):
             result = c.get_objects()
 
         self.assertEqual(len(c.objects), 11) 
-        self.assertEqual(len(result), 0, 'When updating that quickly, there should be no updated objects. %s'.format(str(result)))
+        self.assertEqual(len(result), 0, 'When updating that quickly, there should be no updated objects. {}'.format(str(result)))
 
     def test_set_character_status(self):
         '''Client can update its objects.'''
