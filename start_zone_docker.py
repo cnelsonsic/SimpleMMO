@@ -24,6 +24,9 @@ import requests
 import sys
 import logging
 
+import docker
+client = docker.from_env()
+
 import settings
 
 def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance", owner="Groxnor"):
@@ -41,26 +44,27 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
         # "The door's locked. Move on to the next one."
         port += 1
 
-    args = ['run', 
-            '--detach',
-            '--name=simplemmo-zoneserver-'+zonename, 
-            '-p %d:%d' % (port, port),
-            '-e PORT=%d' % port,
-            '-e INSTANCETYPE=%s' % instancetype,
-            '-e ZONENAME=%s' % zonename,
-            '-e OWNER=%s' % owner,
-            '-e LOGFILEPREFIX=log/simplemmo-zoneserver-%s.log' % '-'.join((instancetype, zonename, owner)),
-            '-e LOGLEVEL=info',
-            '-it',
-            'simplemmo-zoneserver']
-
-    cmd = ['/usr/local/bin/docker']+args
-    print ' '.join(args)
-    print url
-    logging.info("Starting %s" % ' '.join(args))
+    logging.info("Starting Zoneserver %s" % '-'.join((instancetype, zonename, owner)))
     logging.info("Server url: %s" % url)
-    s = subprocess.Popen(' '.join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    return s, url
+
+    # Maybe --interactive and --tty
+    container = client.containers.run(image='simplemmo-zoneserver',
+                                        name='simplemmo-zoneserver-'+zonename,
+                                        ports={port:port},
+                                        environment={'PORT':port,
+                                                    'INSTANCETYPE': instancetype,
+                                                    'ZONENAME': zonename,
+                                                    'OWNER': owner,
+                                                    'LOGFILEPREFIX': 'log/simplemmo-zoneserver-%s.log' % '-'.join((instancetype, zonename, owner)),
+                                                    'LOGLEVEL': 'info' },
+                                        detach=True,
+                                        healthcheck={'test':'curl http://localhost:{}/'.format(port)}
+                                        )
+
+    for line in container.logs():
+        logging.info("ZONE: {}".format(line))
+
+    return container, url
 
 def start_scriptserver(zonename="defaultzone", instancetype="playerinstance", owner="Groxnor"):
 
