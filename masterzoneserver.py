@@ -130,7 +130,9 @@ class ZoneHandler(BaseHandler):
                 numrequests += 1
             except(requests.ConnectionError):
                 # Not up yet...
-                pass
+                if START_ZONE_WITH == DOCKER:
+                    for line in z.logs():
+                        logging.info("ZONE: {}".format(line))
 
             time.sleep(.1)
             if time.time() > starttime+ZONESTARTUPTIME:

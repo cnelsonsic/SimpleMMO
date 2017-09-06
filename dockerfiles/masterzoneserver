@@ -11,4 +11,4 @@ RUN echo "START_ZONE_WITH = DOCKER" >> /SimpleMMO/settings.py
 
 EXPOSE 1236
 
-CMD ["/usr/bin/python", "masterzoneserver.py", "--dburi=/database/simplemmo.sqlite"]
+CMD ["/usr/bin/python", "masterzoneserver.py", "--log_file_prefix=/SimpleMMO/log/masterzoneserver.log", "--dburi=/database/simplemmo.sqlite"]

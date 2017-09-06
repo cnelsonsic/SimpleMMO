@@ -47,9 +47,9 @@ clean:
 run: build
 	docker kill simplemmo-authserver simplemmo-charserver simplemmo-masterzoneserver || true
 	docker rm simplemmo-authserver simplemmo-charserver simplemmo-masterzoneserver || true
-	docker run --detach --name simplemmo-authserver -p 1234:1234 -v $(CURDIR):/database/ -it simplemmo-authserver
-	docker run --detach --name simplemmo-charserver -p 1235:1235 -v $(CURDIR):/database/ -it simplemmo-charserver
-	docker run --detach --name simplemmo-masterzoneserver -p 1236:1236 -v $(CURDIR):/database/ --net=host -v /var/run/docker.sock:/var/run/docker.sock -it simplemmo-masterzoneserver
+	docker run --detach --name simplemmo-authserver -p 1234:1234 -v $(CURDIR)/log:/SimpleMMO/log -v $(CURDIR):/database/ -it simplemmo-authserver
+	docker run --detach --name simplemmo-charserver -p 1235:1235 -v $(CURDIR)/log:/SimpleMMO/log -v $(CURDIR):/database/ -it simplemmo-charserver
+	docker run --detach --name simplemmo-masterzoneserver -p 1236:1236 -v $(CURDIR)/log:/SimpleMMO/log -v $(CURDIR):/database/ --net=host -v /var/run/docker.sock:/var/run/docker.sock -it simplemmo-masterzoneserver
 
 cli: run
 	docker run --rm --name simplemmo-cli -v $(CURDIR):/sqlite/ --link simplemmo-authserver --link simplemmo-charserver --link simplemmo-masterzoneserver -it simplemmo-cli $(cmd)

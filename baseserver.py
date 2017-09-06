@@ -153,6 +153,4 @@ class BaseServer(Application):
         Application.__init__(self, handlers, debug=True, **app_settings)
 
     def start(self):
-        import tornado.options
-        tornado.options.parse_command_line()
         IOLoop.instance().start()
