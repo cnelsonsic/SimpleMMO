@@ -51,19 +51,19 @@ func _init():
     print(result[0])
 
     # Set online
+    print("Setting online")
     result = http.post(zone_hostname, zone_port, '/setstatus', {'character':character_name, 'status': 'online'})
     print(result[0])
 
     # Move
-    result = http.post(zone_hostname, zone_port, '/movement', {'character':character_name, 'x': 0, 'y':0, 'z':0})
-    print(result[0])
+    print("Moving")
+    result = http.post(zone_hostname, zone_port, '/movement', {'character':character_name, 'x': 10, 'y':10, 'z':0})
+    print(result)
 
     # Get zone's Objects
+    print("objects:")
     var since = '%d-%02d-%02d %02d:%02d:%02d:000000' % [last_check["year"], last_check["month"], last_check["day"], last_check["hour"], last_check["minute"], last_check["second"]]
-    print(since)
     result = http.get(zone_hostname, zone_port, '/objects', {'since': since})
-    print(result)
-    print(result[0])
 
     print("Tat's all")
     quit()

@@ -95,15 +95,12 @@ func get(hostname, port, endpoint, data={}):
     var querystring=""
     if data != {}:
         var querystring = http.query_string_from_dict(data)
-        headers.append("Content-Length: " + str(querystring.length()))
-        headers.append("Content-Type: application/x-www-form-urlencoded")
+        endpoint = endpoint + '?' + querystring
 
     # TODO: Some bug with how cookies is generated.
     headers.append("Cookie: " + cookies)
-    print(headers)
-    print(querystring)
 
-    return _request(HTTPClient.METHOD_GET, endpoint, headers, querystring)
+    return _request(HTTPClient.METHOD_GET, endpoint, headers)
 
 
 func post(hostname, port, endpoint, data):
