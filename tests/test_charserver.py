@@ -64,6 +64,3 @@ class TestCharacterZoneHandler(AsyncHTTPTestCase):
             result = self.character_zone_handler.get_zone(character)
             expected = {'zone': 'playerinstance-GhibliHills-%s' % character}
             self.assertEqual(result, expected)
-
-if __name__ == '__main__':
-    unittest.main()

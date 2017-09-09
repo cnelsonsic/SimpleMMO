@@ -141,7 +141,3 @@ class TestCharacterHandler(unittest.TestCase):
         # character_handler = CharacterHandler()
         # self.assertEqual(expected, character_handler.get_characters(username))
         pass # TODO: implement your test here
-
-
-if __name__ == '__main__':
-    unittest.main()

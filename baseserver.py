@@ -24,7 +24,12 @@ import logging
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 from tornado.web import Application, RequestHandler
+from tornado.options import options, define
 from tornado.ioloop import IOLoop
+
+define("dburi", default='simplemmo.sqlite', help="Where is the database?", type=str)
+
+from elixir_models import setup
 
 client = False
 try:
@@ -67,8 +72,9 @@ class BaseHandler(RequestHandler):
             return None
 
     def HTTPError(self, code, message):
-        old_write_error = self.write_error
-        self.write_error = lambda status_code: self.write(message)
+        def write_error(status_code, **kwargs):
+            self.write(message)
+        self.write_error = write_error
         self.send_error(code)
         self.write_error = old_write_error
 
@@ -132,6 +138,33 @@ class SelfServe(BaseHandler):
         # Delete outfile.
         self.write(archive)
 
+class PingHandler(BaseHandler):
+    '''An easy way to see if the server is alive.
+
+    .. http:get:: /ping
+
+        Always the string "pong".
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            GET /ping HTTP/1.1
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: text/plain
+
+            pong
+
+    '''
+    def get(self):
+        self.write("pong")
+        self.set_header("Content-Type", "text/plain")
+
 class BaseServer(Application):
     def __init__(self, extra_handlers):
         '''Expects a list of tuple handlers like:
@@ -147,10 +180,18 @@ class BaseServer(Application):
         handlers = []
         handlers.append((r"/version", VersionHandler))
         handlers.append((r"/source", SelfServe))
+        handlers.append((r"/ping", PingHandler))
+        handlers.append((r"/", PingHandler))
 
         handlers.extend(extra_handlers)
+
+        options.parse_command_line()
+        dburi = options.dburi
+
+        # Connect to the elixir db
+        setup(db_uri=dburi)
 
         Application.__init__(self, handlers, debug=True, **app_settings)
 
     def start(self):
-        IOLoop.instance().start()
+        IOLoop.current().start()

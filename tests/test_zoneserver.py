@@ -305,6 +305,3 @@ class TestMain(unittest.TestCase):
     def test_main(self):
         # self.assertEqual(expected, main(port))
         self.skipTest("Not Implemented.")
-
-if __name__ == '__main__':
-    unittest.main()

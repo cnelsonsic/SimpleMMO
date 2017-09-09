@@ -1,17 +1,20 @@
-FROM ubuntu:precise
+FROM ubuntu:xenial
 
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get -q -y --no-install-recommends install \
-	curl \
-	git \
-	python-pip \
-	python-setuptools \
-	python-dev \
-	build-essential \
-	sqlite3 \
-	supervisor \
-	vim && \
+RUN apt-get update && apt-get -q -y install apt-utils
+
+RUN apt-get update && \
+	apt-get -q -y install apt-utils && \
+	apt-get -q -y --no-install-recommends install \
+		curl \
+		git \
+		python-pip \
+		python-dev \
+		build-essential \
+		sqlite3 \
+		supervisor \
+		vim && \
 	apt-get -y autoremove && \
 	rm -rf /var/lib/apt/lists/*
 
@@ -22,6 +25,8 @@ VOLUME ["/database"]
 
 WORKDIR /SimpleMMO
 ADD requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --upgrade setuptools
 RUN pip install -r requirements.txt
 
 ADD . /SimpleMMO

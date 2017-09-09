@@ -46,6 +46,3 @@ class TestZoneScriptRunner(unittest.TestCase):
         # zone_script_runner = ZoneScriptRunner(zoneid)
         # self.assertEqual(expected, zone_script_runner.tick())
         pass # TODO: implement your test here
-
-if __name__ == '__main__':
-    unittest.main()

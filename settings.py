@@ -54,11 +54,12 @@ SKIP_FOLDERS = ("/.", ".git", ".svn", "/build/", "/srv/")
 
 # AuthServer Settings
 ADMINISTRATORS = ['admin']
+HASH_ROUNDS = 85219
 
 # ZoneServer Settings
 ZONESTARTPORT = 1300
 ZONEENDPORT = 1400
-ZONESTARTUPTIME = 10
+ZONESTARTUPTIME = 20
 DEFAULT_CHARACTER_ZONE = 'defaultzone'
 
 SUPERVISORD = 'supervisord' # Constant

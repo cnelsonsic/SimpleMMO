@@ -44,6 +44,3 @@ class TestSetup(unittest.TestCase):
     def test_setup(self):
         # self.assertEqual(expected, setup(db_uri, echo))
         pass # TODO: implement your test here
-
-if __name__ == '__main__':
-    unittest.main()

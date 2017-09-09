@@ -28,6 +28,7 @@ import time
 import logging
 
 import tornado
+from tornado.util import import_object
 
 import cachelper
 
@@ -333,10 +334,6 @@ def main():
     import tornado
     from tornado.options import options, define
 
-    define("dburi", default='testing.sqlite', help="Where is the database?", type=str)
-
-    tornado.options.parse_command_line()
-
     # Port
     port = options.port
     # Instance Type
@@ -346,26 +343,8 @@ def main():
     # Owner
     owner = options.owner
 
-
-    tornado.options.parse_command_line()
-    dburi = options.dburi
-
-    zoneid = '-'.join((instancetype, zonename, owner))
-    print "ZoneID: %s" % zoneid
-
-    # Connect to the elixir db
-    from elixir_models import setup
-    setup(db_uri=dburi)
-
-    print "Loading %s's data." % zonename
-    from importlib import import_module
-    # Import the zone's init script
-    zonemodule = import_module('games.zones.'+zonename)
-    # Initialize the zone
-    zonescript = zonemodule.Zone(logger=logging.getLogger('zoneserver.'+zoneid))
-
     handlers = []
-    handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
+    # handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/objects", ObjectsHandler))
     handlers.append((r"/setstatus", CharStatusHandler))
     handlers.append((r"/movement", MovementHandler))
@@ -374,9 +353,19 @@ def main():
     handlers.append((r"/activate/(.*)", ScriptedObjectHandler))
 
     server = BaseServer(handlers)
+
+    zoneid = '-'.join((instancetype, zonename, owner))
+    print "ZoneID: %s" % zoneid
+
+    print "Loading %s's data." % zonename
+    # Import the zone's init script
+    zonemodule = import_object('games.zones.'+zonename)
+    # Initialize the zone
+    zonescript = zonemodule.Zone(logger=logging.getLogger('simplemmo-zoneserver-'+zoneid))
+
     server.listen(port)
 
-    print "Starting up Zoneserver..."
+    logging.info("Starting up Zoneserver...")
     try:
         server.start()
     except KeyboardInterrupt:

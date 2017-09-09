@@ -15,8 +15,18 @@ BUILDABLE_PACKAGES := base $(filter-out dockerfiles/base,  $(wildcard dockerfile
 
 all: clean build
 
-test:
-	docker run --rm -u 1000 -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.pyc; mv __init__.py __init__.py.bak; nosetests --exe -v tests/; mv __init__.py.bak __init__.py'
+test: unit-test client-test
+
+unit-test:
+	docker run --rm -u 1000 -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.pyc; mv __init__.py __init__.py.bak; nosetests --with-coverage --exe -v tests/test_authserver.py tests/test_charserver.py tests/test_zoneserver.py tests/test_scriptserver.py tests/test_elixir_models.py; mv __init__.py.bak __init__.py || true'
+	mv .coverage .coverage.1
+
+client-test:
+	docker run --rm -u 1000 -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.pyc; mv __init__.py __init__.py.bak; nosetests --with-coverage --exe -v tests/test_client.py; mv __init__.py.bak __init__.py || true'
+	mv .coverage .coverage.1
+
+coverage: unit-test
+	docker run --rm -u 1000 -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'coverage combine; coverage html; coverage report'
 
 full-test: build
 	docker run --rm -v `pwd`:/SimpleMMO -it simplemmo-cli bash -c 'rm __init__.py*; \
@@ -52,4 +62,7 @@ run: build
 	docker run --detach --name simplemmo-masterzoneserver -p 1236:1236 -v $(CURDIR)/log:/SimpleMMO/log -v $(CURDIR):/database/ --net=host -v /var/run/docker.sock:/var/run/docker.sock -it simplemmo-masterzoneserver
 
 cli: run
-	docker run --rm --name simplemmo-cli -v $(CURDIR):/sqlite/ --link simplemmo-authserver --link simplemmo-charserver --link simplemmo-masterzoneserver -it simplemmo-cli $(cmd)
+	@while ! curl -s localhost:1234/ping > /dev/null; do sleep 1; done
+	docker kill simplemmo-zoneserver-GhibliHills || true
+	docker rm simplemmo-zoneserver-GhibliHills || true
+	docker run --rm --name simplemmo-cli --net=host -v $(CURDIR):/sqlite/ -it simplemmo-cli $(cmd)

@@ -1,3 +1,5 @@
+from games.zones.basezone import BaseZone
+from elixir_models import Object
 # This file is imported when the zone wants to load an instance of this zone.
 
 class Zone(BaseZone):
@@ -20,5 +22,5 @@ class Zone(BaseZone):
         # Place 10 chickens randomly:
         self.randobj(name="Chicken #%d", resource='chicken', scripts=['games.objects.chicken'], count=10)
 
-        print [o.name for o in Object.objects()]
+        print [o.name for o in Object.get_objects()]
 

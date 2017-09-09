@@ -22,6 +22,7 @@
 import subprocess
 import requests
 import sys
+import os
 import logging
 
 import docker
@@ -57,6 +58,7 @@ def start_zone(port=1300, zonename="defaultzone", instancetype="playerinstance",
                                                     'OWNER': owner,
                                                     'LOGFILEPREFIX': 'log/simplemmo-zoneserver-%s.log' % '-'.join((instancetype, zonename, owner)),
                                                     'LOGLEVEL': 'info' },
+                                        volumes={'/home/c/work/SimpleMMO/log': {'bind': '/SimpleMMO/log', 'mode': 'rw'}},
                                         detach=True,
                                         healthcheck={'test':'curl http://localhost:{}/'.format(port)}
                                         )

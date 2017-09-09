@@ -2,11 +2,15 @@
 branch = True
 omit =
     /usr/lib/python2.7/site-packages/*
+    /usr/local/lib/python2.7/dist-packages/*
 
 [report]
 omit =
     /usr/lib/python2.7/site-packages/*
+    /usr/local/lib/python2.7/dist-packages/*
 precision = 2
+skip_covered = True
+sort = Miss
 
 [html]
 directory = coveragehtml

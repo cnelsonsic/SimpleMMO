@@ -1,2 +1,8 @@
-*/.env/*
-*/log/*
+.env/*
+log/*
+Makefile
+*.pyc
+*.md
+vagrant/*
+dockerfiles/*
+.dockerignore

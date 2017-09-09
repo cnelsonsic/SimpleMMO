@@ -131,7 +131,12 @@ class ZoneHandler(BaseHandler):
             except(requests.ConnectionError):
                 # Not up yet...
                 if START_ZONE_WITH == DOCKER:
-                    for line in z.logs():
+                    logs = z.logs()
+                    logging.info(logs)
+                    print(logs)
+                    for line in z.logs().split("\n"):
+                        if line.strip() == "":
+                            continue
                         logging.info("ZONE: {}".format(line))
 
             time.sleep(.1)
@@ -172,16 +177,7 @@ if __name__ == "__main__":
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/(.*)", ZoneHandler))
 
-    import tornado
-    from tornado.options import options, define
-    define("dburi", default='testing.sqlite', help="Where is the database?", type=str)
-
-    tornado.options.parse_command_line()
-    dburi = options.dburi
-
-    # Connect to the elixir db
-    from elixir_models import setup
-    setup(db_uri=dburi)
+    server = BaseServer(handlers)
 
     # On startup, iterate through entries in zones table. See if they are up, if not, delete them.
     for port in [z.port for z in Zone.select()]:
@@ -192,7 +188,6 @@ if __name__ == "__main__":
             # Server is down, remove it from the zones table.
             Zone.get(port=port).delete_instance()
 
-    server = BaseServer(handlers)
     server.listen(MASTERZONESERVERPORT)
 
     print "Starting up Master Zoneserver..."

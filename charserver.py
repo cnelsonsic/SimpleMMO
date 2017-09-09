@@ -85,12 +85,6 @@ class CharacterCreationHandler(BaseHandler):
         return character.name
 
 if __name__ == "__main__":
-    from tornado.options import options, define
-    define("dburi", default='sqlite:///simplemmo.sqlite', help="Where is the database?", type=str)
-
-    tornado.options.parse_command_line()
-    dburi = options.dburi
-
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
     handlers.append((r"/new", CharacterCreationHandler))
@@ -98,10 +92,6 @@ if __name__ == "__main__":
 
     server = BaseServer(handlers)
     server.listen(CHARSERVERPORT)
-
-    # Connect to the elixir db
-    from elixir_models import setup
-    setup(db_uri=dburi)
 
     print "Starting up Charserver..."
     try:

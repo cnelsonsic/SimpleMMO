@@ -49,13 +49,10 @@ class UserController(object):
         schemes=["pbkdf2_sha512",],
         default="pbkdf2_sha512",
 
-        # vary rounds parameter randomly when creating new hashes...
-        all__vary_rounds = 0.1,
-
         # set the number of rounds that should be used...
         # (appropriate values may vary for different schemes,
         # and the amount of time you wish it to take)
-        pbkdf2_sha256__default_rounds = 80000,
+        pbkdf2_sha256__default_rounds = settings.HASH_ROUNDS,
         )
 
     @classmethod
@@ -65,34 +62,6 @@ class UserController(object):
     @classmethod
     def check_password(cls, plaintext, hashed):
         return cls.context.verify(plaintext, hashed)
-
-
-class PingHandler(BaseHandler):
-    '''An easy way to see if the server is alive.
-
-    .. http:get:: /ping
-
-        Always the string "pong".
-
-        **Example request**:
-
-        .. sourcecode:: http
-
-            GET /ping HTTP/1.1
-
-        **Example response**:
-
-        .. sourcecode:: http
-
-            HTTP/1.1 200 OK
-            Content-Type: text/plain
-
-            pong
-
-    '''
-    def get(self):
-        self.write("pong")
-        self.set_header("Content-Type", "text/plain")
 
 
 class RegistrationHandler(BaseHandler):
@@ -267,15 +236,8 @@ class CharacterHandler(BaseHandler):
 
 
 if __name__ == "__main__":
-    from tornado.options import options, define
-    define("dburi", default='simplemmo.sqlite', help="Where is the database?", type=str)
-
-    tornado.options.parse_command_line()
-    dburi = options.dburi
-
     handlers = []
     handlers.append((r"/", lambda x, y: SimpleHandler(__doc__, x, y)))
-    handlers.append((r"/ping", PingHandler))
     handlers.append((r"/register", RegistrationHandler))
     handlers.append((r"/login", AuthHandler))
     handlers.append((r"/logout", LogoutHandler))
@@ -283,10 +245,6 @@ if __name__ == "__main__":
 
     server = BaseServer(handlers)
     server.listen(settings.AUTHSERVERPORT)
-
-    # Connect to the elixir db
-    from elixir_models import setup
-    setup(db_uri=dburi)
 
     try:
         user = User.get(username=settings.DEFAULT_USERNAME)
