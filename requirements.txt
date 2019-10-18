@@ -70,6 +70,6 @@ python-dateutil==1.5
 pytz==2015.7
 rsa==3.3
 setuptools==36.4.0
-urllib3[secure]==1.22
+urllib3[secure]==1.24.2
 idna==2.6
 wsgiref==0.1.2
